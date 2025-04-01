@@ -1,33 +1,66 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import MainLayout from './layouts/MainLayout';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider } from './contexts/AuthContext';
+import { PortfolioProvider } from './contexts/PortfolioContext';
+import { PrivateRoute, PublicRoute } from './components/ProtectedRoutes';
 
-// Import page components (will create these next)
-const Home = React.lazy(() => import('./pages/Home/Home'));
-const Projects = React.lazy(() => import('./pages/Projects/Projects'));
-const Leadership = React.lazy(() => import('./pages/Leadership/Leadership'));
-const Resume = React.lazy(() => import('./pages/Resume/Resume'));
-const Contact = React.lazy(() => import('./pages/Contact/Contact'));
+// Public Pages
+import Home from './pages/Home/Home';
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import PublicPortfolio from './pages/Public/PublicPortfolio';
+import PortfolioDirectory from './pages/Public/PortfolioDirectory';
+
+// Dashboard Pages
+import DashboardLayout from './layouts/DashboardLayout';
+import DashboardHome from './pages/Dashboard/DashboardHome';
+import PersonalInfoEdit from './pages/Dashboard/PersonalInfoEdit';
+import ProjectsEdit from './pages/Dashboard/ProjectsEdit';
+import LeadershipEdit from './pages/Dashboard/LeadershipEdit';
+import SkillsEdit from './pages/Dashboard/SkillsEdit';
+import ContactEdit from './pages/Dashboard/ContactEdit';
 
 function App() {
   return (
-    <BrowserRouter>
-      <React.Suspense fallback={
-        <div className="flex items-center justify-center h-screen">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-        </div>
-      }>
-        <Routes>
-          <Route path="/" element={<MainLayout />}>
-            <Route index element={<Home />} />
-            <Route path="projects" element={<Projects />} />
-            <Route path="leadership" element={<Leadership />} />
-            <Route path="resume" element={<Resume />} />
-            <Route path="contact" element={<Contact />} />
-          </Route>
-        </Routes>
-      </React.Suspense>
-    </BrowserRouter>
+    <Router>
+      <AuthProvider>
+        <PortfolioProvider>
+          <Routes>
+            {/* Public Routes */}
+            <Route path="/" element={<Home />} />
+            <Route path="/login" element={
+              <PublicRoute>
+                <Login />
+              </PublicRoute>
+            } />
+            <Route path="/register" element={
+              <PublicRoute>
+                <Register />
+              </PublicRoute>
+            } />
+            <Route path="/portfolios" element={<PortfolioDirectory />} />
+            <Route path="/portfolio/:userId" element={<PublicPortfolio />} />
+
+            {/* Dashboard Routes */}
+            <Route path="/dashboard" element={
+              <PrivateRoute>
+                <DashboardLayout />
+              </PrivateRoute>
+            }>
+              <Route index element={<DashboardHome />} />
+              <Route path="personal-info" element={<PersonalInfoEdit />} />
+              <Route path="projects" element={<ProjectsEdit />} />
+              <Route path="leadership" element={<LeadershipEdit />} />
+              <Route path="skills" element={<SkillsEdit />} />
+              <Route path="contact" element={<ContactEdit />} />
+            </Route>
+
+            {/* Fallback Route */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </PortfolioProvider>
+      </AuthProvider>
+    </Router>
   );
 }
 
