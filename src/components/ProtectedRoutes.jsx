@@ -1,17 +1,24 @@
+// src/components/ProtectedRoutes.jsx
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, Outlet } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 
-// Component to protect routes that require authentication
-export function PrivateRoute({ children }) {
+export const PrivateRoute = ({ children }) => {
   const { currentUser } = useAuth();
   
-  return currentUser ? children : <Navigate to="/login" />;
-}
+  if (!currentUser) {
+    return <Navigate to="/login" />;
+  }
+  
+  return children ? children : <Outlet />;
+};
 
-// Component to redirect authenticated users away from auth pages
-export function PublicRoute({ children }) {
+export const PublicRoute = ({ children }) => {
   const { currentUser } = useAuth();
   
-  return currentUser ? <Navigate to="/dashboard" /> : children;
-}
+  if (currentUser) {
+    return <Navigate to="/dashboard" />;
+  }
+  
+  return children ? children : <Outlet />;
+};
