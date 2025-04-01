@@ -1,6 +1,8 @@
 // src/pages/Home/Home.jsx
 import React from 'react';
 import { Link } from 'react-router-dom';
+// Correct import path - go up two levels to src directory
+import { auth, db } from '../../firebase';
 
 const Home = () => {
   return (
