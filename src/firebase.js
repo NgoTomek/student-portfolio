@@ -7,13 +7,13 @@ import { getAnalytics } from 'firebase/analytics';
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
-  apiKey: 'AIzaSyCoE7kKmLTBmeaE4cSUdNLqacFqemFYrGo',
-  authDomain: 'student-portfolio-caccc.firebaseapp.com',
-  projectId: 'student-portfolio-caccc',
-  storageBucket: 'student-portfolio-caccc.appspot.com',
-  messagingSenderId: '417762081993',
-  appId: '1:417762081993:web:5b833fe0519354fde8a118',
-  measurementId: 'G-NK41G5JX9T',
+  apiKey: process.env.REACT_APP_FIREBASE_API_KEY || 'AIzaSyCoE7kKmLTBmeaE4cSUdNLqacFqemFYrGo',
+  authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN || 'student-portfolio-caccc.firebaseapp.com',
+  projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID || 'student-portfolio-caccc',
+  storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET || 'student-portfolio-caccc.appspot.com',
+  messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID || '417762081993',
+  appId: process.env.REACT_APP_FIREBASE_APP_ID || '1:417762081993:web:5b833fe0519354fde8a118',
+  measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID || 'G-NK41G5JX9T'
 };
 
 // Initialize Firebase
