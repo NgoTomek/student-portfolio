@@ -1,35 +1,12 @@
+// src/pages/Auth/Register.tsx
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../contexts/AuthContext';
-import { Form, FormField, FormSubmitButton } from '../../components/Form';
-import * as Yup from 'yup';
-import { Card } from '../../components/Card';
+import { doc, setDoc } from 'firebase/firestore';
+import { db } from '../../firebase';
 import { handleError } from '../../utils/errorUtils';
 
-const registerSchema = Yup.object().shape({
-  name: Yup.string()
-    .required('Full name is required')
-    .min(2, 'Name must be at least 2 characters'),
-  email: Yup.string()
-    .email('Please enter a valid email address')
-    .required('Email is required'),
-  password: Yup.string()
-    .min(8, 'Password must be at least 8 characters')
-    .matches(
-      /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/,
-      'Password must contain at least one uppercase letter, one lowercase letter and one number'
-    )
-    .required('Password is required'),
-  confirmPassword: Yup.string()
-    .oneOf([Yup.ref('password')], 'Passwords must match')
-    .required('Please confirm your password'),
-  school: Yup.string()
-    .required('School name is required'),
-  year: Yup.string()
-    .required('Year/Grade is required'),
-});
-
-interface RegisterFormValues {
+interface FormData {
   name: string;
   email: string;
   password: string;
@@ -39,29 +16,82 @@ interface RegisterFormValues {
 }
 
 const Register: React.FC = () => {
-  const [error, setError] = useState<string>('');
-  const { signup } = useAuth();
-  const navigate = useNavigate();
-
-  const initialValues: RegisterFormValues = {
+  const [formData, setFormData] = useState<FormData>({
     name: '',
     email: '',
     password: '',
     confirmPassword: '',
     school: '',
     year: '',
+  });
+  const [error, setError] = useState<string>('');
+  const [loading, setLoading] = useState<boolean>(false);
+  const { signup, updateUserProfile } = useAuth();
+  const navigate = useNavigate();
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async (values: RegisterFormValues, { setSubmitting }: { setSubmitting: (isSubmitting: boolean) => void }) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (formData.password !== formData.confirmPassword) {
+      return setError('Passwords do not match');
+    }
+
     try {
       setError('');
-      await signup(values.email, values.password, values.name);
+      setLoading(true);
+
+      // Create user account
+      const userCredential = await signup(formData.email, formData.password);
+      const user = userCredential.user;
+
+      // Update profile with display name
+      await updateUserProfile(formData.name);
+
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', user.uid), {
+        displayName: formData.name,
+        email: formData.email,
+        school: formData.school,
+        year: formData.year,
+        createdAt: new Date().toISOString(),
+      });
+
+      // Create initial portfolio document
+      await setDoc(doc(db, 'portfolios', user.uid), {
+        personalInfo: {
+          name: formData.name,
+          email: formData.email,
+          school: formData.school,
+          year: formData.year,
+          bio: '',
+          quote: '',
+        },
+        projects: [],
+        leadership: [],
+        skills: [],
+        languages: [],
+        tools: [],
+        contact: {
+          email: formData.email,
+        },
+        createdAt: new Date().toISOString(),
+        lastUpdated: new Date().toISOString(),
+      });
+
       navigate('/dashboard');
     } catch (err) {
-      handleError(err, 'Registration failed');
-      setError(err instanceof Error ? err.message : 'Failed to create an account');
+      handleError(err, 'Account creation failed');
+      setError('Failed to create an account: ' + (err instanceof Error ? err.message : 'Unknown error'));
     } finally {
-      setSubmitting(false);
+      setLoading(false);
     }
   };
 
@@ -80,7 +110,7 @@ const Register: React.FC = () => {
       </div>
 
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
-        <Card className="py-8 px-4 shadow sm:rounded-lg sm:px-10">
+        <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
             <div
               className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
@@ -90,73 +120,123 @@ const Register: React.FC = () => {
             </div>
           )}
 
-          <Form
-            initialValues={initialValues}
-            validationSchema={registerSchema}
-            onSubmit={handleSubmit}
-          >
-            {({ errors, touched, isSubmitting }) => (
-              <>
-                <FormField
+          <form className="space-y-6" onSubmit={handleSubmit}>
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+                Full Name
+              </label>
+              <div className="mt-1">
+                <input
+                  id="name"
                   name="name"
-                  label="Full Name"
-                  errors={errors}
-                  touched={touched}
-                  isSubmitting={isSubmitting}
+                  type="text"
+                  required
+                  value={formData.name}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
+              </div>
+            </div>
 
-                <FormField
+            <div>
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                Email address
+              </label>
+              <div className="mt-1">
+                <input
+                  id="email"
                   name="email"
-                  label="Email address"
                   type="email"
-                  errors={errors}
-                  touched={touched}
-                  isSubmitting={isSubmitting}
+                  autoComplete="email"
+                  required
+                  value={formData.email}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
+              </div>
+            </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <FormField
-                    name="school"
-                    label="School"
-                    errors={errors}
-                    touched={touched}
-                    isSubmitting={isSubmitting}
-                  />
+            <div>
+              <label htmlFor="school" className="block text-sm font-medium text-gray-700">
+                School
+              </label>
+              <div className="mt-1">
+                <input
+                  id="school"
+                  name="school"
+                  type="text"
+                  required
+                  value={formData.school}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
 
-                  <FormField
-                    name="year"
-                    label="Year/Grade"
-                    errors={errors}
-                    touched={touched}
-                    isSubmitting={isSubmitting}
-                  />
-                </div>
+            <div>
+              <label htmlFor="year" className="block text-sm font-medium text-gray-700">
+                Year/Grade
+              </label>
+              <div className="mt-1">
+                <input
+                  id="year"
+                  name="year"
+                  type="text"
+                  required
+                  value={formData.year}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                />
+              </div>
+            </div>
 
-                <FormField
+            <div>
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                Password
+              </label>
+              <div className="mt-1">
+                <input
+                  id="password"
                   name="password"
-                  label="Password"
                   type="password"
-                  errors={errors}
-                  touched={touched}
-                  isSubmitting={isSubmitting}
+                  autoComplete="new-password"
+                  required
+                  value={formData.password}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
+              </div>
+            </div>
 
-                <FormField
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700">
+                Confirm Password
+              </label>
+              <div className="mt-1">
+                <input
+                  id="confirmPassword"
                   name="confirmPassword"
-                  label="Confirm Password"
                   type="password"
-                  errors={errors}
-                  touched={touched}
-                  isSubmitting={isSubmitting}
+                  autoComplete="new-password"
+                  required
+                  value={formData.confirmPassword}
+                  onChange={handleChange}
+                  className="appearance-none block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 />
+              </div>
+            </div>
 
-                <FormSubmitButton isSubmitting={isSubmitting} className="w-full mt-6">
-                  Create Account
-                </FormSubmitButton>
-              </>
-            )}
-          </Form>
-        </Card>
+            <div>
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                {loading ? 'Creating Account...' : 'Create Account'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   );
