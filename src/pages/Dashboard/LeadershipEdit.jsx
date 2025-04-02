@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,7 +11,7 @@ const LeadershipEdit = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [leadershipItems, setLeadershipItems] = useState([]);
-  
+
   // New leadership item form state
   const [newItem, setNewItem] = useState({
     title: '',
@@ -21,7 +21,7 @@ const LeadershipEdit = () => {
     endDate: '',
     ongoing: false,
     image: null,
-    imageUrl: ''
+    imageUrl: '',
   });
 
   // Edit mode state
@@ -32,15 +32,15 @@ const LeadershipEdit = () => {
     const fetchLeadershipItems = async () => {
       try {
         if (!currentUser) return;
-        
-        const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
+
+        const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
         const portfolioDoc = await getDoc(portfolioDocRef);
-        
+
         if (portfolioDoc.exists() && portfolioDoc.data().leadership) {
           setLeadershipItems(portfolioDoc.data().leadership);
         }
       } catch (err) {
-        setError("Failed to load leadership items: " + err.message);
+        setError('Failed to load leadership items: ' + err.message);
       } finally {
         setLoading(false);
       }
@@ -49,46 +49,46 @@ const LeadershipEdit = () => {
     fetchLeadershipItems();
   }, [currentUser]);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value, type, checked } = e.target;
     setNewItem(prev => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : value
+      [name]: type === 'checkbox' ? checked : value,
     }));
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = e => {
     if (e.target.files[0]) {
       setNewItem(prev => ({
         ...prev,
-        image: e.target.files[0]
+        image: e.target.files[0],
       }));
     }
   };
 
-  const uploadImage = async (image) => {
+  const uploadImage = async image => {
     if (!image) return null;
-    
+
     const storageRef = ref(storage, `leadership/${currentUser.uid}/${Date.now()}_${image.name}`);
     await uploadBytes(storageRef, image);
     return await getDownloadURL(storageRef);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
+
     try {
       setSaving(true);
       setError('');
       setSuccess('');
-      
+
       let imageUrl = newItem.imageUrl;
-      
+
       // Upload image if a new one is selected
       if (newItem.image) {
         imageUrl = await uploadImage(newItem.image);
       }
-      
+
       const itemData = {
         title: newItem.title,
         organization: newItem.organization,
@@ -97,34 +97,34 @@ const LeadershipEdit = () => {
         endDate: newItem.ongoing ? 'Present' : newItem.endDate,
         ongoing: newItem.ongoing,
         imageUrl: imageUrl,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      
-      const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
-      
+
+      const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
+
       if (editMode && editIndex !== null) {
         // Update existing leadership item
         const updatedItems = [...leadershipItems];
         updatedItems[editIndex] = itemData;
-        
+
         await updateDoc(portfolioDocRef, {
           leadership: updatedItems,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         });
-        
+
         setLeadershipItems(updatedItems);
-        setSuccess("Leadership item updated successfully!");
+        setSuccess('Leadership item updated successfully!');
       } else {
         // Add new leadership item
         await updateDoc(portfolioDocRef, {
           leadership: arrayUnion(itemData),
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         });
-        
+
         setLeadershipItems([...leadershipItems, itemData]);
-        setSuccess("Leadership item added successfully!");
+        setSuccess('Leadership item added successfully!');
       }
-      
+
       // Reset form
       setNewItem({
         title: '',
@@ -134,19 +134,18 @@ const LeadershipEdit = () => {
         endDate: '',
         ongoing: false,
         image: null,
-        imageUrl: ''
+        imageUrl: '',
       });
       setEditMode(false);
       setEditIndex(null);
-      
     } catch (err) {
-      setError("Failed to save leadership item: " + err.message);
+      setError('Failed to save leadership item: ' + err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEdit = (index) => {
+  const handleEdit = index => {
     const item = leadershipItems[index];
     setNewItem({
       title: item.title,
@@ -156,34 +155,32 @@ const LeadershipEdit = () => {
       endDate: item.ongoing ? '' : item.endDate,
       ongoing: item.ongoing,
       image: null,
-      imageUrl: item.imageUrl || ''
+      imageUrl: item.imageUrl || '',
     });
     setEditMode(true);
     setEditIndex(index);
   };
 
-  const handleDelete = async (index) => {
-    if (!window.confirm("Are you sure you want to delete this leadership item?")) {
+  const handleDelete = async index => {
+    if (!window.confirm('Are you sure you want to delete this leadership item?')) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      
-      const itemToDelete = leadershipItems[index];
       const updatedItems = leadershipItems.filter((_, i) => i !== index);
-      
-      const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
-      
+
+      const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
+
       await updateDoc(portfolioDocRef, {
         leadership: updatedItems,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
-      
+
       setLeadershipItems(updatedItems);
-      setSuccess("Leadership item deleted successfully!");
+      setSuccess('Leadership item deleted successfully!');
     } catch (err) {
-      setError("Failed to delete leadership item: " + err.message);
+      setError('Failed to delete leadership item: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -198,7 +195,7 @@ const LeadershipEdit = () => {
       endDate: '',
       ongoing: false,
       image: null,
-      imageUrl: ''
+      imageUrl: '',
     });
     setEditMode(false);
     setEditIndex(null);
@@ -218,19 +215,25 @@ const LeadershipEdit = () => {
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           {editMode ? 'Edit Leadership Role' : 'Add Leadership Role'}
         </h2>
-        
+
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+            role="alert"
+          >
             <span className="block sm:inline">{error}</span>
           </div>
         )}
-        
+
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <div
+            className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
+            role="alert"
+          >
             <span className="block sm:inline">{success}</span>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -247,9 +250,12 @@ const LeadershipEdit = () => {
                 required
               />
             </div>
-            
+
             <div>
-              <label htmlFor="organization" className="block text-sm font-medium text-gray-700 mb-1">
+              <label
+                htmlFor="organization"
+                className="block text-sm font-medium text-gray-700 mb-1"
+              >
                 Organization/Club
               </label>
               <input
@@ -263,7 +269,7 @@ const LeadershipEdit = () => {
               />
             </div>
           </div>
-          
+
           <div className="mb-6">
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description
@@ -279,7 +285,7 @@ const LeadershipEdit = () => {
               required
             ></textarea>
           </div>
-          
+
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
               <label htmlFor="startDate" className="block text-sm font-medium text-gray-700 mb-1">
@@ -295,7 +301,7 @@ const LeadershipEdit = () => {
                 required
               />
             </div>
-            
+
             <div>
               <label htmlFor="endDate" className="block text-sm font-medium text-gray-700 mb-1">
                 End Date
@@ -324,7 +330,7 @@ const LeadershipEdit = () => {
               </div>
             </div>
           </div>
-          
+
           <div className="mb-6">
             <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
               Image (Optional)
@@ -340,15 +346,15 @@ const LeadershipEdit = () => {
             {newItem.imageUrl && (
               <div className="mt-2">
                 <p className="text-sm text-gray-500">Current image:</p>
-                <img 
-                  src={newItem.imageUrl} 
-                  alt="Leadership role preview" 
-                  className="mt-2 h-32 w-auto object-cover rounded-md" 
+                <img
+                  src={newItem.imageUrl}
+                  alt="Leadership role preview"
+                  className="mt-2 h-32 w-auto object-cover rounded-md"
                 />
               </div>
             )}
           </div>
-          
+
           <div className="flex justify-end space-x-3">
             {editMode && (
               <button
@@ -364,15 +370,15 @@ const LeadershipEdit = () => {
               disabled={saving}
               className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {saving ? 'Saving...' : (editMode ? 'Update Role' : 'Add Role')}
+              {saving ? 'Saving...' : editMode ? 'Update Role' : 'Add Role'}
             </button>
           </div>
         </form>
       </div>
-      
+
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Leadership Roles</h2>
-        
+
         {leadershipItems.length === 0 ? (
           <p className="text-gray-500 italic">You haven't added any leadership roles yet.</p>
         ) : (
@@ -381,10 +387,10 @@ const LeadershipEdit = () => {
               <div key={index} className="border rounded-lg p-4 flex flex-col md:flex-row">
                 {item.imageUrl && (
                   <div className="md:w-1/4 mb-4 md:mb-0 md:mr-4">
-                    <img 
-                      src={item.imageUrl} 
-                      alt={item.title} 
-                      className="h-32 w-full object-cover rounded-md" 
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="h-32 w-full object-cover rounded-md"
                     />
                   </div>
                 )}
@@ -419,6 +425,8 @@ const LeadershipEdit = () => {
           </div>
         )}
       </div>
+
+      <p className="text-sm text-gray-500">Don&apos;t forget to save your changes!</p>
     </div>
   );
 };

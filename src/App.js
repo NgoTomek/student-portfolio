@@ -3,6 +3,8 @@ import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-d
 import { AuthProvider } from './contexts/AuthContext';
 import { PortfolioProvider } from './contexts/PortfolioContext';
 import { PrivateRoute, PublicRoute } from './components/ProtectedRoutes';
+import { NetworkStatus } from './components/NetworkStatus';
+import { Toast } from './components/Toast';
 
 // Public Pages
 import Home from './pages/Home/Home';
@@ -25,28 +27,39 @@ function App() {
     <Router>
       <AuthProvider>
         <PortfolioProvider>
+          <Toast />
+          <NetworkStatus />
           <Routes>
             {/* Public Routes */}
             <Route path="/" element={<Home />} />
-            <Route path="/login" element={
-              <PublicRoute>
-                <Login />
-              </PublicRoute>
-            } />
-            <Route path="/register" element={
-              <PublicRoute>
-                <Register />
-              </PublicRoute>
-            } />
+            <Route
+              path="/login"
+              element={
+                <PublicRoute>
+                  <Login />
+                </PublicRoute>
+              }
+            />
+            <Route
+              path="/register"
+              element={
+                <PublicRoute>
+                  <Register />
+                </PublicRoute>
+              }
+            />
             <Route path="/portfolios" element={<PortfolioDirectory />} />
             <Route path="/portfolio/:userId" element={<PublicPortfolio />} />
 
             {/* Dashboard Routes */}
-            <Route path="/dashboard" element={
-              <PrivateRoute>
-                <DashboardLayout />
-              </PrivateRoute>
-            }>
+            <Route
+              path="/dashboard"
+              element={
+                <PrivateRoute>
+                  <DashboardLayout />
+                </PrivateRoute>
+              }
+            >
               <Route index element={<DashboardHome />} />
               <Route path="personal-info" element={<PersonalInfoEdit />} />
               <Route path="projects" element={<ProjectsEdit />} />

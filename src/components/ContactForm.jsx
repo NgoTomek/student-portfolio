@@ -15,7 +15,7 @@ const ContactForm = () => {
           placeholder="Your name"
         />
       </div>
-      
+
       <div>
         <label htmlFor="email" className="block text-sm font-medium text-gray-700">
           Email
@@ -28,7 +28,7 @@ const ContactForm = () => {
           placeholder="your.email@example.com"
         />
       </div>
-      
+
       <div>
         <label htmlFor="message" className="block text-sm font-medium text-gray-700">
           Message
@@ -41,7 +41,7 @@ const ContactForm = () => {
           placeholder="Your message here..."
         />
       </div>
-      
+
       <div>
         <button
           type="submit"

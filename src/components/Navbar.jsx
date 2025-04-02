@@ -28,10 +28,10 @@ const Navbar = () => {
               </Link>
             </div>
           </div>
-          
+
           {/* Desktop menu */}
           <div className="hidden md:flex items-center space-x-4">
-            {navigation.map((item) => (
+            {navigation.map(item => (
               <Link
                 key={item.name}
                 to={item.href}
@@ -41,7 +41,7 @@ const Navbar = () => {
               </Link>
             ))}
           </div>
-          
+
           {/* Mobile menu button */}
           <div className="flex md:hidden items-center">
             <button
@@ -63,7 +63,7 @@ const Navbar = () => {
       {isOpen && (
         <div className="md:hidden">
           <div className="px-2 pt-2 pb-3 space-y-1 sm:px-3">
-            {navigation.map((item) => (
+            {navigation.map(item => (
               <Link
                 key={item.name}
                 to={item.href}

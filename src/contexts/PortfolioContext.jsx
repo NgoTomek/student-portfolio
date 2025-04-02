@@ -28,17 +28,17 @@ export function PortfolioProvider({ children }) {
 
       try {
         setLoading(true);
-        const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
+        const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
         const portfolioDoc = await getDoc(portfolioDocRef);
-        
+
         if (portfolioDoc.exists()) {
           setPortfolioData(portfolioDoc.data());
         } else {
-          console.log("No portfolio data found for this user");
+          console.log('No portfolio data found for this user');
           setPortfolioData(null);
         }
       } catch (err) {
-        console.error("Error fetching portfolio data:", err);
+        console.error('Error fetching portfolio data:', err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -51,19 +51,19 @@ export function PortfolioProvider({ children }) {
   // Refresh portfolio data function
   const refreshPortfolioData = async () => {
     if (!currentUser) return;
-    
+
     try {
       setLoading(true);
-      const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
+      const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
       const portfolioDoc = await getDoc(portfolioDocRef);
-      
+
       if (portfolioDoc.exists()) {
         setPortfolioData(portfolioDoc.data());
       } else {
         setPortfolioData(null);
       }
     } catch (err) {
-      console.error("Error refreshing portfolio data:", err);
+      console.error('Error refreshing portfolio data:', err);
       setError(err.message);
     } finally {
       setLoading(false);
@@ -74,12 +74,8 @@ export function PortfolioProvider({ children }) {
     portfolioData,
     loading,
     error,
-    refreshPortfolioData
+    refreshPortfolioData,
   };
 
-  return (
-    <PortfolioContext.Provider value={value}>
-      {children}
-    </PortfolioContext.Provider>
-  );
+  return <PortfolioContext.Provider value={value}>{children}</PortfolioContext.Provider>;
 }

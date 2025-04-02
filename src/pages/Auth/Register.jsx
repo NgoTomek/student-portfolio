@@ -12,57 +12,57 @@ const Register = () => {
     password: '',
     confirmPassword: '',
     school: '',
-    year: ''
+    year: '',
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const { signup, updateUserProfile } = useAuth();
   const navigate = useNavigate();
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
+
     if (formData.password !== formData.confirmPassword) {
       return setError('Passwords do not match');
     }
-    
+
     try {
       setError('');
       setLoading(true);
-      
+
       // Create user account
       const userCredential = await signup(formData.email, formData.password);
       const user = userCredential.user;
-      
+
       // Update profile with display name
       await updateUserProfile(formData.name);
-      
+
       // Create user document in Firestore
-      await setDoc(doc(db, "users", user.uid), {
+      await setDoc(doc(db, 'users', user.uid), {
         displayName: formData.name,
         email: formData.email,
         school: formData.school,
         year: formData.year,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       });
-      
+
       // Create initial portfolio document
-      await setDoc(doc(db, "portfolios", user.uid), {
+      await setDoc(doc(db, 'portfolios', user.uid), {
         personalInfo: {
           name: formData.name,
           email: formData.email,
           school: formData.school,
           year: formData.year,
           bio: '',
-          quote: ''
+          quote: '',
         },
         projects: [],
         leadership: [],
@@ -70,12 +70,12 @@ const Register = () => {
         languages: [],
         tools: [],
         contact: {
-          email: formData.email
+          email: formData.email,
         },
         createdAt: new Date().toISOString(),
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
-      
+
       navigate('/dashboard');
     } catch (err) {
       setError('Failed to create an account: ' + err.message);
@@ -101,11 +101,14 @@ const Register = () => {
       <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
         <div className="bg-white py-8 px-4 shadow sm:rounded-lg sm:px-10">
           {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+            <div
+              className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+              role="alert"
+            >
               <span className="block sm:inline">{error}</span>
             </div>
           )}
-          
+
           <form className="space-y-6" onSubmit={handleSubmit}>
             <div>
               <label htmlFor="name" className="block text-sm font-medium text-gray-700">

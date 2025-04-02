@@ -9,23 +9,23 @@ const PersonalInfoEdit = () => {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-  
+
   const [formData, setFormData] = useState({
     name: '',
     school: '',
     year: '',
     bio: '',
-    quote: ''
+    quote: '',
   });
 
   useEffect(() => {
     const fetchPersonalInfo = async () => {
       try {
         if (!currentUser) return;
-        
-        const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
+
+        const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
         const portfolioDoc = await getDoc(portfolioDocRef);
-        
+
         if (portfolioDoc.exists() && portfolioDoc.data().personalInfo) {
           const personalInfo = portfolioDoc.data().personalInfo;
           setFormData({
@@ -33,11 +33,11 @@ const PersonalInfoEdit = () => {
             school: personalInfo.school || '',
             year: personalInfo.year || '',
             bio: personalInfo.bio || '',
-            quote: personalInfo.quote || ''
+            quote: personalInfo.quote || '',
           });
         }
       } catch (err) {
-        setError("Failed to load personal information: " + err.message);
+        setError('Failed to load personal information: ' + err.message);
       } finally {
         setLoading(false);
       }
@@ -46,38 +46,38 @@ const PersonalInfoEdit = () => {
     fetchPersonalInfo();
   }, [currentUser]);
 
-  const handleChange = (e) => {
+  const handleChange = e => {
     const { name, value } = e.target;
     setFormData(prevData => ({
       ...prevData,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
+
     try {
       setSaving(true);
       setError('');
       setSuccess('');
-      
-      const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
-      
+
+      const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
+
       await updateDoc(portfolioDocRef, {
         personalInfo: {
           name: formData.name,
           school: formData.school,
           year: formData.year,
           bio: formData.bio,
-          quote: formData.quote
+          quote: formData.quote,
         },
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
-      
-      setSuccess("Personal information updated successfully!");
+
+      setSuccess('Personal information updated successfully!');
     } catch (err) {
-      setError("Failed to update personal information: " + err.message);
+      setError('Failed to update personal information: ' + err.message);
     } finally {
       setSaving(false);
     }
@@ -94,19 +94,25 @@ const PersonalInfoEdit = () => {
   return (
     <div className="bg-white shadow rounded-lg p-6">
       <h2 className="text-2xl font-bold text-gray-800 mb-6">Edit Personal Information</h2>
-      
+
       {error && (
-        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <div
+          className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+          role="alert"
+        >
           <span className="block sm:inline">{error}</span>
         </div>
       )}
-      
+
       {success && (
-        <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+        <div
+          className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
+          role="alert"
+        >
           <span className="block sm:inline">{success}</span>
         </div>
       )}
-      
+
       <form onSubmit={handleSubmit}>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
           <div>
@@ -123,7 +129,7 @@ const PersonalInfoEdit = () => {
               required
             />
           </div>
-          
+
           <div>
             <label htmlFor="school" className="block text-sm font-medium text-gray-700 mb-1">
               School
@@ -139,7 +145,7 @@ const PersonalInfoEdit = () => {
             />
           </div>
         </div>
-        
+
         <div className="mb-6">
           <label htmlFor="year" className="block text-sm font-medium text-gray-700 mb-1">
             Year/Grade
@@ -154,7 +160,7 @@ const PersonalInfoEdit = () => {
             required
           />
         </div>
-        
+
         <div className="mb-6">
           <label htmlFor="bio" className="block text-sm font-medium text-gray-700 mb-1">
             Bio
@@ -170,7 +176,7 @@ const PersonalInfoEdit = () => {
             required
           ></textarea>
         </div>
-        
+
         <div className="mb-6">
           <label htmlFor="quote" className="block text-sm font-medium text-gray-700 mb-1">
             Motivational Quote
@@ -185,7 +191,7 @@ const PersonalInfoEdit = () => {
             placeholder="Your favorite quote or personal motto"
           />
         </div>
-        
+
         <div className="flex justify-end">
           <button
             type="submit"

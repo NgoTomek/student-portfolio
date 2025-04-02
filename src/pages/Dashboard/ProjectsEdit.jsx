@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { doc, getDoc, updateDoc, arrayUnion, arrayRemove } from 'firebase/firestore';
+import { doc, getDoc, updateDoc, arrayUnion } from 'firebase/firestore';
 import { db, storage } from '../../firebase';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { useAuth } from '../../contexts/AuthContext';
@@ -11,7 +11,7 @@ const ProjectsEdit = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [projects, setProjects] = useState([]);
-  
+
   // New project form state
   const [newProject, setNewProject] = useState({
     title: '',
@@ -19,7 +19,7 @@ const ProjectsEdit = () => {
     category: 'academic', // Default category
     link: '',
     image: null,
-    imageUrl: ''
+    imageUrl: '',
   });
 
   // Edit mode state
@@ -30,15 +30,15 @@ const ProjectsEdit = () => {
     const fetchProjects = async () => {
       try {
         if (!currentUser) return;
-        
-        const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
+
+        const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
         const portfolioDoc = await getDoc(portfolioDocRef);
-        
+
         if (portfolioDoc.exists() && portfolioDoc.data().projects) {
           setProjects(portfolioDoc.data().projects);
         }
       } catch (err) {
-        setError("Failed to load projects: " + err.message);
+        setError('Failed to load projects: ' + err.message);
       } finally {
         setLoading(false);
       }
@@ -47,80 +47,80 @@ const ProjectsEdit = () => {
     fetchProjects();
   }, [currentUser]);
 
-  const handleInputChange = (e) => {
+  const handleInputChange = e => {
     const { name, value } = e.target;
     setNewProject(prev => ({
       ...prev,
-      [name]: value
+      [name]: value,
     }));
   };
 
-  const handleImageChange = (e) => {
+  const handleImageChange = e => {
     if (e.target.files[0]) {
       setNewProject(prev => ({
         ...prev,
-        image: e.target.files[0]
+        image: e.target.files[0],
       }));
     }
   };
 
-  const uploadImage = async (image) => {
+  const uploadImage = async image => {
     if (!image) return null;
-    
+
     const storageRef = ref(storage, `projects/${currentUser.uid}/${Date.now()}_${image.name}`);
     await uploadBytes(storageRef, image);
     return await getDownloadURL(storageRef);
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async e => {
     e.preventDefault();
-    
+
     try {
       setSaving(true);
       setError('');
       setSuccess('');
-      
+
       let imageUrl = newProject.imageUrl;
-      
+
       // Upload image if a new one is selected
       if (newProject.image) {
         imageUrl = await uploadImage(newProject.image);
       }
-      
+
       const projectData = {
         title: newProject.title,
         description: newProject.description,
         category: newProject.category,
         link: newProject.link,
         imageUrl: imageUrl,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
       };
-      
-      const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
-      
+
+      const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
+
       if (editMode && editIndex !== null) {
         // Update existing project
         const updatedProjects = [...projects];
         updatedProjects[editIndex] = projectData;
-        
+
         await updateDoc(portfolioDocRef, {
           projects: updatedProjects,
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         });
-        
+
         setProjects(updatedProjects);
-        setSuccess("Project updated successfully!");
+        setSuccess('Project updated successfully!');
       } else {
         // Add new project
         await updateDoc(portfolioDocRef, {
           projects: arrayUnion(projectData),
-          lastUpdated: new Date().toISOString()
+          lastUpdated: new Date().toISOString(),
         });
-        
+
         setProjects([...projects, projectData]);
-        setSuccess("Project added successfully!");
+        setSuccess('Project added successfully!');
       }
-      
+
       // Reset form
       setNewProject({
         title: '',
@@ -128,19 +128,18 @@ const ProjectsEdit = () => {
         category: 'academic',
         link: '',
         image: null,
-        imageUrl: ''
+        imageUrl: '',
       });
       setEditMode(false);
       setEditIndex(null);
-      
     } catch (err) {
-      setError("Failed to save project: " + err.message);
+      setError('Failed to save project: ' + err.message);
     } finally {
       setSaving(false);
     }
   };
 
-  const handleEdit = (index) => {
+  const handleEdit = index => {
     const project = projects[index];
     setNewProject({
       title: project.title,
@@ -148,34 +147,32 @@ const ProjectsEdit = () => {
       category: project.category,
       link: project.link || '',
       image: null,
-      imageUrl: project.imageUrl || ''
+      imageUrl: project.imageUrl || '',
     });
     setEditMode(true);
     setEditIndex(index);
   };
 
-  const handleDelete = async (index) => {
-    if (!window.confirm("Are you sure you want to delete this project?")) {
+  const handleDelete = async index => {
+    if (!window.confirm('Are you sure you want to delete this project?')) {
       return;
     }
-    
+
     try {
       setLoading(true);
-      
-      const projectToDelete = projects[index];
-      const updatedProjects = projects.filter((_, i) => i !== index);
-      
-      const portfolioDocRef = doc(db, "portfolios", currentUser.uid);
-      
+      const updatedItems = projects.filter((_, i) => i !== index);
+
+      const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
+
       await updateDoc(portfolioDocRef, {
-        projects: updatedProjects,
-        lastUpdated: new Date().toISOString()
+        projects: updatedItems,
+        lastUpdated: new Date().toISOString(),
       });
-      
-      setProjects(updatedProjects);
-      setSuccess("Project deleted successfully!");
+
+      setProjects(updatedItems);
+      setSuccess('Project deleted successfully!');
     } catch (err) {
-      setError("Failed to delete project: " + err.message);
+      setError('Failed to delete project: ' + err.message);
     } finally {
       setLoading(false);
     }
@@ -188,7 +185,7 @@ const ProjectsEdit = () => {
       category: 'academic',
       link: '',
       image: null,
-      imageUrl: ''
+      imageUrl: '',
     });
     setEditMode(false);
     setEditIndex(null);
@@ -208,19 +205,25 @@ const ProjectsEdit = () => {
         <h2 className="text-2xl font-bold text-gray-800 mb-6">
           {editMode ? 'Edit Project' : 'Add New Project'}
         </h2>
-        
+
         {error && (
-          <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <div
+            className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4"
+            role="alert"
+          >
             <span className="block sm:inline">{error}</span>
           </div>
         )}
-        
+
         {success && (
-          <div className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4" role="alert">
+          <div
+            className="bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded relative mb-4"
+            role="alert"
+          >
             <span className="block sm:inline">{success}</span>
           </div>
         )}
-        
+
         <form onSubmit={handleSubmit}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
             <div>
@@ -237,7 +240,7 @@ const ProjectsEdit = () => {
                 required
               />
             </div>
-            
+
             <div>
               <label htmlFor="category" className="block text-sm font-medium text-gray-700 mb-1">
                 Category
@@ -258,7 +261,7 @@ const ProjectsEdit = () => {
               </select>
             </div>
           </div>
-          
+
           <div className="mb-6">
             <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
               Description
@@ -274,7 +277,7 @@ const ProjectsEdit = () => {
               required
             ></textarea>
           </div>
-          
+
           <div className="mb-6">
             <label htmlFor="link" className="block text-sm font-medium text-gray-700 mb-1">
               Project Link (Optional)
@@ -289,7 +292,7 @@ const ProjectsEdit = () => {
               placeholder="https://example.com/project"
             />
           </div>
-          
+
           <div className="mb-6">
             <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
               Project Image
@@ -305,15 +308,15 @@ const ProjectsEdit = () => {
             {newProject.imageUrl && (
               <div className="mt-2">
                 <p className="text-sm text-gray-500">Current image:</p>
-                <img 
-                  src={newProject.imageUrl} 
-                  alt="Project preview" 
-                  className="mt-2 h-32 w-auto object-cover rounded-md" 
+                <img
+                  src={newProject.imageUrl}
+                  alt="Project preview"
+                  className="mt-2 h-32 w-auto object-cover rounded-md"
                 />
               </div>
             )}
           </div>
-          
+
           <div className="flex justify-end space-x-3">
             {editMode && (
               <button
@@ -329,15 +332,15 @@ const ProjectsEdit = () => {
               disabled={saving}
               className="inline-flex justify-center py-2 px-4 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
-              {saving ? 'Saving...' : (editMode ? 'Update Project' : 'Add Project')}
+              {saving ? 'Saving...' : editMode ? 'Update Project' : 'Add Project'}
             </button>
           </div>
         </form>
       </div>
-      
+
       <div className="bg-white shadow rounded-lg p-6">
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Projects</h2>
-        
+
         {projects.length === 0 ? (
           <p className="text-gray-500 italic">You haven't added any projects yet.</p>
         ) : (
@@ -346,10 +349,10 @@ const ProjectsEdit = () => {
               <div key={index} className="border rounded-lg p-4 flex flex-col md:flex-row">
                 {project.imageUrl && (
                   <div className="md:w-1/4 mb-4 md:mb-0 md:mr-4">
-                    <img 
-                      src={project.imageUrl} 
-                      alt={project.title} 
-                      className="h-32 w-full object-cover rounded-md" 
+                    <img
+                      src={project.imageUrl}
+                      alt={project.title}
+                      className="h-32 w-full object-cover rounded-md"
                     />
                   </div>
                 )}
@@ -378,9 +381,9 @@ const ProjectsEdit = () => {
                   </div>
                   <p className="text-gray-600 mt-2">{project.description}</p>
                   {project.link && (
-                    <a 
-                      href={project.link} 
-                      target="_blank" 
+                    <a
+                      href={project.link}
+                      target="_blank"
                       rel="noopener noreferrer"
                       className="text-blue-600 hover:text-blue-800 mt-2 inline-block"
                     >
@@ -393,6 +396,8 @@ const ProjectsEdit = () => {
           </div>
         )}
       </div>
+
+      <p className="text-sm text-gray-500">Don&apos;t forget to save your changes!</p>
     </div>
   );
 };

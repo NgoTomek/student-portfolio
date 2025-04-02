@@ -1,34 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { fetchAllUsers } from '../../services/portfolioService';
 import { useFirestoreQuery } from '../../hooks/useFirestore';
 
 const PortfolioDirectory = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [filteredUsers, setFilteredUsers] = useState([]);
-  
+
   // Use our custom hook to fetch all users
   const { data: users, loading, error } = useFirestoreQuery('users');
-  
+
   // Filter users based on search term
   useEffect(() => {
     if (!users) return;
-    
+
     if (!searchTerm.trim()) {
       setFilteredUsers(users);
       return;
     }
-    
+
     const lowerSearchTerm = searchTerm.toLowerCase();
-    const filtered = users.filter(user => 
-      user.displayName?.toLowerCase().includes(lowerSearchTerm) ||
-      user.school?.toLowerCase().includes(lowerSearchTerm)
+    const filtered = users.filter(
+      user =>
+        user.displayName?.toLowerCase().includes(lowerSearchTerm) ||
+        user.school?.toLowerCase().includes(lowerSearchTerm)
     );
-    
+
     setFilteredUsers(filtered);
   }, [users, searchTerm]);
-  
-  const handleSearchChange = (e) => {
+
+  const handleSearchChange = e => {
     setSearchTerm(e.target.value);
   };
 
@@ -87,7 +87,7 @@ const PortfolioDirectory = () => {
         {/* Results */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredUsers.length > 0 ? (
-            filteredUsers.map((user) => (
+            filteredUsers.map(user => (
               <div key={user.id} className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="p-6">
                   <h3 className="text-xl font-bold text-gray-800">{user.displayName}</h3>
@@ -106,7 +106,9 @@ const PortfolioDirectory = () => {
             ))
           ) : (
             <div className="col-span-full text-center py-12">
-              <p className="text-gray-500 text-lg">No students found matching your search criteria.</p>
+              <p className="text-gray-500 text-lg">
+                No students found matching your search criteria.
+              </p>
             </div>
           )}
         </div>

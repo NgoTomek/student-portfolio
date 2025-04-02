@@ -1,41 +1,49 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import { collection, getDocs, query, where, orderBy, limit } from 'firebase/firestore';
 import { db } from '../firebase';
 
 // Custom hook for fetching data from Firestore
-export const useFirestoreQuery = (collectionName, constraints = [], orderByField = null, orderDirection = 'desc', limitCount = null) => {
+export const useFirestoreQuery = (
+  collectionName,
+  constraints = [],
+  orderByField = null,
+  orderDirection = 'desc',
+  limitCount = null
+) => {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const constraintsString = JSON.stringify(constraints);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         const collectionRef = collection(db, collectionName);
-        
+
         // Build query with constraints
         let queryRef = collectionRef;
         if (constraints.length > 0) {
           queryRef = query(collectionRef, ...constraints);
         }
-        
+
         // Add orderBy if specified
         if (orderByField) {
           queryRef = query(queryRef, orderBy(orderByField, orderDirection));
         }
-        
+
         // Add limit if specified
         if (limitCount) {
           queryRef = query(queryRef, limit(limitCount));
         }
-        
+
         const snapshot = await getDocs(queryRef);
         const fetchedData = snapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
-        
+
         setData(fetchedData);
         setError(null);
       } catch (err) {
@@ -47,7 +55,7 @@ export const useFirestoreQuery = (collectionName, constraints = [], orderByField
     };
 
     fetchData();
-  }, [collectionName, JSON.stringify(constraints), orderByField, orderDirection, limitCount]);
+  }, [collectionName, constraintsString, orderByField, orderDirection, limitCount]);
 
   return { data, loading, error };
 };
@@ -58,6 +66,8 @@ export const useFirestoreRealtime = (collectionName, constraints = []) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
+  const constraintsString = JSON.stringify(constraints);
+
   useEffect(() => {
     // This would use onSnapshot for real-time updates
     // For now, we'll just use the regular query hook
@@ -65,19 +75,19 @@ export const useFirestoreRealtime = (collectionName, constraints = []) => {
       try {
         setLoading(true);
         const collectionRef = collection(db, collectionName);
-        
+
         // Build query with constraints
         let queryRef = collectionRef;
         if (constraints.length > 0) {
           queryRef = query(collectionRef, ...constraints);
         }
-        
+
         const snapshot = await getDocs(queryRef);
         const fetchedData = snapshot.docs.map(doc => ({
           id: doc.id,
-          ...doc.data()
+          ...doc.data(),
         }));
-        
+
         setData(fetchedData);
         setError(null);
       } catch (err) {
@@ -89,7 +99,7 @@ export const useFirestoreRealtime = (collectionName, constraints = []) => {
     };
 
     fetchData();
-  }, [collectionName, JSON.stringify(constraints)]);
+  }, [collectionName, constraintsString]);
 
   return { data, loading, error };
 };
