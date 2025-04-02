@@ -3,7 +3,7 @@ service firebase.storage {
   match /b/{bucket}/o {
     // Helper functions
     function isAuthenticated() {
-      return request.auth != null && request.auth.uid != null;
+      return request.auth != null;
     }
     
     function isOwner(userId) {
@@ -12,58 +12,59 @@ service firebase.storage {
     
     function isAdmin() {
       return isAuthenticated() && 
-        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.role == 'admin';
     }
     
-    function isValidFileType() {
-      return request.resource.contentType.matches('image/.*') || 
-        request.resource.contentType.matches('application/pdf');
+    function isImageFile() {
+      return request.resource.contentType.matches('image/.*');
     }
     
-    function isValidFileSize() {
-      // Limit file size to 5MB
-      return request.resource.size <= 5 * 1024 * 1024;
+    function isDocumentFile() {
+      return request.resource.contentType.matches('application/pdf') ||
+             request.resource.contentType.matches('application/msword') ||
+             request.resource.contentType.matches('application/vnd.openxmlformats-officedocument.wordprocessingml.document');
     }
     
-    // Public files - readable by anyone
-    match /public/{fileName} {
+    function isFileSizeUnder(maxSizeMB) {
+      return request.resource.size < maxSizeMB * 1024 * 1024;
+    }
+    
+    // User profile images - users can only upload their own, but anyone can view
+    match /profile-images/{userId}/{filename} {
+      allow read: if true;
+      allow write: if isOwner(userId) && 
+                    isImageFile() && 
+                    isFileSizeUnder(5);
+    }
+    
+    // Portfolio project images - only owners can write, but anyone can read
+    match /project-images/{userId}/{projectId}/{filename} {
+      allow read: if true;
+      allow write: if isOwner(userId) && 
+                    isImageFile() && 
+                    isFileSizeUnder(10);
+    }
+    
+    // Resume files - only owners can write, but anyone can read
+    match /resumes/{userId}/{filename} {
+      allow read: if true;
+      allow write: if isOwner(userId) && 
+                    isDocumentFile() && 
+                    isFileSizeUnder(10);
+    }
+    
+    // Temporary uploads - only authenticated users can write, only owners can read
+    match /temp/{userId}/{filename} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) && isFileSizeUnder(15);
+      
+      // Auto-delete after 1 day (requires Cloud Function setup)
+    }
+    
+    // Admin files - only admins can write, but anyone can read
+    match /admin/{filename} {
       allow read: if true;
       allow write: if isAdmin();
-    }
-    
-    // User profiles - users can only manage their own profile images
-    match /profiles/{userId}/{fileName} {
-      allow read: if true;
-      allow write: if isOwner(userId) && 
-        isValidFileType() && 
-        isValidFileSize() && 
-        fileName.matches('avatar\\.(jpg|jpeg|png)'); 
-    }
-    
-    // Portfolio files - users can manage their own, public ones are readable by anyone
-    match /portfolios/{userId}/{fileName} {
-      allow read: if true;
-      allow write: if isOwner(userId) && 
-        isValidFileType() && 
-        isValidFileSize();
-    }
-    
-    // Resume files - more restricted access
-    match /resumes/{userId}/{fileName} {
-      allow read: if isOwner(userId) || 
-        (isAuthenticated() && 
-         firestore.get(/databases/(default)/documents/users/$(userId)).data.resumeIsPublic == true);
-      allow write: if isOwner(userId) && 
-        request.resource.contentType.matches('application/pdf') && 
-        isValidFileSize();
-    }
-    
-    // Project files - users can manage their own, public ones are readable by anyone
-    match /projects/{userId}/{projectId}/{fileName} {
-      allow read: if true;
-      allow write: if isOwner(userId) && 
-        isValidFileType() && 
-        isValidFileSize();
     }
     
     // Default deny

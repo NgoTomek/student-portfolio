@@ -1,244 +1,338 @@
 /**
  * Security Audit Script
  * 
- * This script scans the codebase for potential security issues:
- * - Firebase API keys exposed in client-side code
- * - Missing authentication checks
- * - Insecure data validation
- * - Insecure direct object references
- * - Cross-site scripting vulnerabilities
- * - Missing Content Security Policy
+ * This script performs a basic security audit of the codebase to identify
+ * potential security issues and vulnerabilities.
  */
 
 const fs = require('fs');
 const path = require('path');
+const { execSync } = require('child_process');
 const glob = require('glob');
 
-// Configuration
-const SCAN_DIRECTORIES = ['src', 'public'];
-const IGNORE_DIRECTORIES = ['node_modules', 'build', 'dist'];
-const ISSUES_OUTPUT_FILE = 'security-audit-results.json';
+// ANSI color codes
+const colors = {
+  reset: '\x1b[0m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m'
+};
 
-// Define security checks and patterns
-const securityChecks = [
-  {
-    name: 'Exposed API Keys',
-    description: 'API keys or secrets should not be hardcoded in the source code',
-    patterns: [
-      /apiKey:\s*["'][\w-]{20,}["']/g,
-      /key:\s*["'][\w-]{20,}["']/g,
-      /secret:\s*["'][\w-]{20,}["']/g,
-      /password:\s*["'][\w-]{8,}["']/g,
-      /AIza[\w-]{35}/g // Google API key pattern
+// Config
+const config = {
+  srcDir: path.join(__dirname, 'src'),
+  publicDir: path.join(__dirname, 'public'),
+  excludeDirs: ['node_modules', 'build', 'dist', 'coverage'],
+  securityFiles: ['firestore.rules', 'storage.rules', '.env.example'],
+  patterns: {
+    // Security patterns to check in code
+    hardcodedSecrets: [
+      /['"`].*(?:password|passwd|pass|pwd|secret|key|token|auth|credential).*?=.*?['"`]/i,
+      /const\s+(?:apiKey|authKey|secretKey|tokenKey|appKey).*?=/i,
     ],
-    severity: 'Critical',
-    remediation: 'Use environment variables (.env) to store sensitive data and make sure to add .env to .gitignore'
-  },
-  {
-    name: 'Missing Authentication',
-    description: 'Database or storage operations without auth checks',
-    patterns: [
-      /firestore\(\)\.collection\(.*\)\.get\(\)/g,
-      /firestore\(\)\.collection\(.*\)\.set\(\)/g,
-      /firestore\(\)\.collection\(.*\)\.add\(\)/g,
-      /firestore\(\)\.collection\(.*\)\.delete\(\)/g,
-      /firebase\.storage\(\)\.ref\(\)/g
+    insecureRandomness: [
+      /Math\.random\(\)/g,
     ],
-    severity: 'High',
-    remediation: 'Add authentication checks before database operations and implement security rules in Firebase'
-  },
-  {
-    name: 'Insecure Data Validation',
-    description: 'Using data without proper validation',
-    patterns: [
-      /(?<!validateWith)\(JSON\.parse\((.*?)\)\)/g,
-      /(?<!validateWith)\(eval\((.*?)\)\)/g,
-      /\.innerHTML\s*=/g,
-      /dangerouslySetInnerHTML/g,
+    potentialXss: [
+      /(?:dangerouslySetInnerHTML|\{\s*__html\s*:)/,
+      /document\.write\(/,
+      /\.innerHTML\s*=/,
     ],
-    severity: 'High',
-    remediation: 'Implement proper data validation, sanitize all user input, and avoid using innerHTML/dangerouslySetInnerHTML'
-  },
-  {
-    name: 'Cross-Site Scripting (XSS)',
-    description: 'Potential XSS vulnerabilities',
-    patterns: [
-      /document\.write\(/g,
-      /\.innerHTML\s*=/g,
-      /dangerouslySetInnerHTML/g,
-      /href\s*=\s*{.*}/g
+    insecureStorage: [
+      /localStorage\.|sessionStorage\./,
     ],
-    severity: 'High',
-    remediation: 'Sanitize user input, avoid using innerHTML/dangerouslySetInnerHTML, and use proper encoding'
-  },
-  {
-    name: 'Insecure Direct Object References',
-    description: 'Accessing resources directly by user-controlled input',
-    patterns: [
-      /params\.id/g,
-      /useParams\(\)/g,
-      /params\['.*'\]/g,
-      /params\[".*"\]/g,
+    // Find console.log statements that might leak sensitive data
+    consoleStatements: [
+      /console\.(log|info|error|warn|debug)\(/,
     ],
-    severity: 'Medium',
-    remediation: 'Add authorization checks to ensure users can only access their own resources'
-  },
-  {
-    name: 'Missing Content Security Policy',
-    description: 'No Content Security Policy found',
-    patterns: [],
-    fileCheck: (filePath, content) => {
-      if (filePath.includes('public/index.html')) {
-        return !content.includes('<meta http-equiv="Content-Security-Policy"');
-      }
-      return false;
-    },
-    severity: 'Medium',
-    remediation: 'Add a Content Security Policy to your HTML or as HTTP headers'
-  },
-  {
-    name: 'Insecure Firebase Rules',
-    description: 'Overly permissive Firebase rules',
-    fileCheck: (filePath, content) => {
-      if (filePath.endsWith('firestore.rules') || filePath.endsWith('storage.rules')) {
-        return content.includes('allow read, write: if true') || 
-               content.includes('allow read: if true') && content.includes('allow write: if true');
-      }
-      return false;
-    },
-    severity: 'Critical',
-    remediation: 'Implement proper security rules for Firestore and Storage'
+    // Check for eval() and similar dangerous functions
+    dangerousFunctions: [
+      /eval\(|Function\(|new Function\(|setTimeout\(\s*['"`]/,
+    ],
+    // Check for CDN resources loaded over HTTP
+    insecureUrls: [
+      /http:\/\/(?!localhost)/,
+    ],
   }
-];
+};
 
-// Found issues
-const issues = [];
+// Results storage
+const results = {
+  issues: [],
+  warnings: [],
+  suggestions: [],
+  fileCount: 0,
+  issueCount: 0,
+  warningCount: 0,
+  suggestionCount: 0,
+};
 
 /**
- * Scan a file for security issues
+ * Run npm audit
  */
-function scanFile(filePath) {
-  // Skip ignored directories
-  if (IGNORE_DIRECTORIES.some(dir => filePath.includes(dir))) {
+function runNpmAudit() {
+  console.log(`${colors.cyan}Running npm audit...${colors.reset}`);
+  
+  try {
+    const output = execSync('npm audit --json', { encoding: 'utf8' });
+    const auditResults = JSON.parse(output);
+    
+    const { vulnerabilities } = auditResults;
+    
+    if (!vulnerabilities) {
+      console.log(`${colors.green}No vulnerabilities found.${colors.reset}`);
+      return;
+    }
+    
+    // Count by severity
+    const severityCounts = {
+      info: 0,
+      low: 0,
+      moderate: 0,
+      high: 0,
+      critical: 0,
+    };
+    
+    Object.values(vulnerabilities).forEach(vuln => {
+      severityCounts[vuln.severity] = (severityCounts[vuln.severity] || 0) + 1;
+    });
+    
+    // Report findings
+    if (severityCounts.critical > 0) {
+      results.issues.push(`Found ${severityCounts.critical} critical vulnerabilities in dependencies`);
+      results.issueCount += severityCounts.critical;
+    }
+    
+    if (severityCounts.high > 0) {
+      results.issues.push(`Found ${severityCounts.high} high severity vulnerabilities in dependencies`);
+      results.issueCount += severityCounts.high;
+    }
+    
+    if (severityCounts.moderate > 0) {
+      results.warnings.push(`Found ${severityCounts.moderate} moderate severity vulnerabilities in dependencies`);
+      results.warningCount += severityCounts.moderate;
+    }
+    
+    if (severityCounts.low > 0) {
+      results.suggestions.push(`Found ${severityCounts.low} low severity vulnerabilities in dependencies`);
+      results.suggestionCount += severityCounts.low;
+    }
+    
+    console.log(`${colors.yellow}Run 'npm audit fix' to attempt automatic fixes${colors.reset}`);
+    
+  } catch (error) {
+    if (error.status === 1 && error.stdout) {
+      try {
+        const auditResults = JSON.parse(error.stdout);
+        const vulns = auditResults.vulnerabilities || {};
+        const vulnCount = Object.keys(vulns).length;
+        
+        if (vulnCount > 0) {
+          results.issues.push(`Found ${vulnCount} vulnerabilities in dependencies`);
+          results.issueCount += vulnCount;
+        }
+      } catch (parseError) {
+        results.warnings.push('Failed to parse npm audit results');
+        results.warningCount++;
+      }
+    } else {
+      results.warnings.push('Failed to run npm audit');
+      results.warningCount++;
+    }
+  }
+}
+
+/**
+ * Check for security issues in a file
+ * 
+ * @param {string} filePath Path to the file
+ */
+function checkFile(filePath) {
+  const relPath = path.relative(__dirname, filePath);
+  results.fileCount++;
+  
+  // Skip excluded directories
+  if (config.excludeDirs.some(dir => filePath.includes(dir))) {
+    return;
+  }
+  
+  // Skip binary files
+  const ext = path.extname(filePath).toLowerCase();
+  if (['.png', '.jpg', '.gif', '.ico', '.pdf', '.woff', '.woff2', '.ttf', '.eot'].includes(ext)) {
     return;
   }
   
   try {
     const content = fs.readFileSync(filePath, 'utf8');
+    const lines = content.split('\n');
     
-    // Run pattern-based checks
-    securityChecks.forEach(check => {
-      if (check.patterns) {
-        check.patterns.forEach(pattern => {
-          const matches = content.match(pattern);
-          if (matches) {
-            matches.forEach(match => {
-              const lineNumber = getLineNumber(content, match);
-              issues.push({
-                check: check.name,
-                description: check.description,
-                file: filePath,
-                line: lineNumber,
-                match: match,
-                severity: check.severity,
-                remediation: check.remediation
-              });
-            });
+    // Check each pattern
+    for (const [category, patterns] of Object.entries(config.patterns)) {
+      for (const pattern of patterns) {
+        const matches = content.match(pattern);
+        
+        if (matches) {
+          for (const match of matches) {
+            // Find the line number
+            let lineNumber = 0;
+            for (let i = 0; i < lines.length; i++) {
+              if (lines[i].includes(match)) {
+                lineNumber = i + 1;
+                break;
+              }
+            }
+            
+            const issue = `${relPath} (line ${lineNumber}): ${getCategoryMessage(category)} - ${match.trim()}`;
+            
+            switch (category) {
+              case 'hardcodedSecrets':
+              case 'potentialXss':
+              case 'dangerousFunctions':
+              case 'insecureUrls':
+                results.issues.push(issue);
+                results.issueCount++;
+                break;
+                
+              case 'insecureRandomness':
+              case 'insecureStorage':
+                results.warnings.push(issue);
+                results.warningCount++;
+                break;
+                
+              case 'consoleStatements':
+                if (process.env.NODE_ENV === 'production' || filePath.includes('production')) {
+                  results.warnings.push(issue);
+                  results.warningCount++;
+                } else {
+                  results.suggestions.push(issue);
+                  results.suggestionCount++;
+                }
+                break;
+                
+              default:
+                results.suggestions.push(issue);
+                results.suggestionCount++;
+            }
           }
-        });
+        }
       }
-      
-      // Run custom file checks
-      if (check.fileCheck && check.fileCheck(filePath, content)) {
-        issues.push({
-          check: check.name,
-          description: check.description,
-          file: filePath,
-          line: null,
-          match: null,
-          severity: check.severity,
-          remediation: check.remediation
-        });
-      }
-    });
-  } catch (error) {
-    console.error(`Error scanning file ${filePath}:`, error.message);
+    }
+  } catch (err) {
+    results.warnings.push(`Failed to check file ${relPath}: ${err.message}`);
+    results.warningCount++;
   }
 }
 
 /**
- * Get the line number for a matched string in content
+ * Get a human-readable message for a category
+ * 
+ * @param {string} category Category name
+ * @returns {string} Human-readable message
  */
-function getLineNumber(content, match) {
-  const index = content.indexOf(match);
-  if (index === -1) return -1;
+function getCategoryMessage(category) {
+  const messages = {
+    hardcodedSecrets: 'Potential hardcoded secret',
+    insecureRandomness: 'Insecure randomness',
+    potentialXss: 'Potential XSS vulnerability',
+    insecureStorage: 'Insecure storage API usage',
+    consoleStatements: 'Console statement',
+    dangerousFunctions: 'Dangerous function',
+    insecureUrls: 'Insecure HTTP URL',
+  };
   
-  const lines = content.substring(0, index).split('\n');
-  return lines.length;
+  return messages[category] || category;
 }
 
 /**
- * Main function
+ * Check if Firebase security rules exist
  */
-function main() {
-  console.log('🔍 Starting security audit...');
-  
-  // Get all files to scan
-  let filesToScan = [];
-  SCAN_DIRECTORIES.forEach(dir => {
-    if (fs.existsSync(dir)) {
-      const files = glob.sync(`${dir}/**/*`, { nodir: true });
-      filesToScan = filesToScan.concat(files);
+function checkSecurityRules() {
+  for (const file of config.securityFiles) {
+    const filePath = path.join(__dirname, file);
+    if (!fs.existsSync(filePath)) {
+      results.warnings.push(`Missing security file: ${file}`);
+      results.warningCount++;
     }
-  });
+  }
+}
+
+/**
+ * Print a summary of the audit results
+ */
+function printSummary() {
+  console.log('\n' + '='.repeat(80));
+  console.log(`${colors.cyan}SECURITY AUDIT SUMMARY${colors.reset}`);
+  console.log('='.repeat(80));
   
-  console.log(`Found ${filesToScan.length} files to scan`);
+  console.log(`\n${colors.white}Files scanned: ${results.fileCount}${colors.reset}`);
+  console.log(`${colors.red}Issues found: ${results.issueCount}${colors.reset}`);
+  console.log(`${colors.yellow}Warnings found: ${results.warningCount}${colors.reset}`);
+  console.log(`${colors.blue}Suggestions found: ${results.suggestionCount}${colors.reset}\n`);
   
-  // Scan each file
-  filesToScan.forEach(filePath => {
-    scanFile(filePath);
-  });
+  if (results.issues.length > 0) {
+    console.log(`${colors.red}ISSUES:${colors.reset}`);
+    results.issues.forEach(issue => console.log(`❌ ${issue}`));
+    console.log('');
+  }
   
-  // Group issues by severity
-  const criticalIssues = issues.filter(issue => issue.severity === 'Critical');
-  const highIssues = issues.filter(issue => issue.severity === 'High');
-  const mediumIssues = issues.filter(issue => issue.severity === 'Medium');
+  if (results.warnings.length > 0) {
+    console.log(`${colors.yellow}WARNINGS:${colors.reset}`);
+    results.warnings.forEach(warning => console.log(`⚠️ ${warning}`));
+    console.log('');
+  }
+  
+  if (results.suggestions.length > 0) {
+    console.log(`${colors.blue}SUGGESTIONS:${colors.reset}`);
+    results.suggestions.forEach(suggestion => console.log(`ℹ️ ${suggestion}`));
+    console.log('');
+  }
+  
+  console.log('='.repeat(80));
+  
+  if (results.issueCount > 0) {
+    console.log(`${colors.red}❌ Security audit found ${results.issueCount} issues that need to be addressed.${colors.reset}`);
+    process.exit(1);
+  } else if (results.warningCount > 0) {
+    console.log(`${colors.yellow}⚠️ Security audit found ${results.warningCount} warnings to review.${colors.reset}`);
+    process.exit(0);
+  } else {
+    console.log(`${colors.green}✅ Security audit passed with ${results.suggestionCount} suggestions to consider.${colors.reset}`);
+    process.exit(0);
+  }
+}
+
+/**
+ * Run the security audit
+ */
+function runAudit() {
+  console.log(`${colors.cyan}Starting security audit...${colors.reset}`);
+  
+  // Run npm audit
+  runNpmAudit();
+  
+  // Check security rules
+  checkSecurityRules();
+  
+  // Scan source files
+  console.log(`${colors.cyan}Scanning source files...${colors.reset}`);
+  
+  // Get all relevant files
+  const srcFiles = glob.sync(`${config.srcDir}/**/*.{js,jsx,ts,tsx,json,html,css}`);
+  const publicFiles = glob.sync(`${config.publicDir}/**/*.{js,jsx,html,css,json}`);
+  const rootFiles = glob.sync(`./*.{js,jsx,ts,tsx,json,html,css}`);
+  
+  const allFiles = [...srcFiles, ...publicFiles, ...rootFiles];
+  
+  // Check each file
+  allFiles.forEach(checkFile);
   
   // Print summary
-  console.log('\n--- Security Audit Results ---');
-  console.log(`🔴 Critical issues: ${criticalIssues.length}`);
-  console.log(`🟠 High issues: ${highIssues.length}`);
-  console.log(`🟡 Medium issues: ${mediumIssues.length}`);
-  console.log(`🟢 Total issues: ${issues.length}`);
-  
-  // Print critical issues
-  if (criticalIssues.length > 0) {
-    console.log('\n--- Critical Issues ---');
-    criticalIssues.forEach((issue, index) => {
-      console.log(`${index + 1}. ${issue.check} - ${issue.file}${issue.line ? `:${issue.line}` : ''}`);
-      console.log(`   ${issue.description}`);
-      if (issue.match) console.log(`   Match: ${issue.match}`);
-      console.log(`   Remediation: ${issue.remediation}`);
-      console.log();
-    });
-  }
-  
-  // Save all issues to file
-  fs.writeFileSync(ISSUES_OUTPUT_FILE, JSON.stringify({
-    summary: {
-      critical: criticalIssues.length,
-      high: highIssues.length,
-      medium: mediumIssues.length,
-      total: issues.length
-    },
-    issues: issues
-  }, null, 2));
-  
-  console.log(`\nFull results saved to ${ISSUES_OUTPUT_FILE}`);
-  console.log('\nNext steps:');
-  console.log('1. Address all critical issues immediately');
-  console.log('2. Plan to fix high and medium issues');
-  console.log('3. Run this audit regularly to check for new issues');
+  printSummary();
 }
 
-main(); 
+// Run the audit
+runAudit(); 

@@ -1,170 +1,114 @@
 /**
- * Deploy Firestore and Storage Security Rules
+ * Security Rules Deployment Script
  * 
- * This script deploys security rules to Firebase projects for both Firestore and Storage
- * It requires Firebase CLI to be installed and the user to be logged in
+ * This script deploys Firestore and Storage security rules to Firebase.
+ * It also performs a basic validation check before deployment.
  */
 
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
-const readline = require('readline');
 
-// Create readline interface
-const rl = readline.createInterface({
-  input: process.stdin,
-  output: process.stdout
-});
+// ANSI color codes for terminal output
+const colors = {
+  reset: '\x1b[0m',
+  red: '\x1b[31m',
+  green: '\x1b[32m',
+  yellow: '\x1b[33m',
+  blue: '\x1b[34m',
+  magenta: '\x1b[35m',
+  cyan: '\x1b[36m',
+  white: '\x1b[37m'
+};
+
+// Paths to rule files
+const FIRESTORE_RULES_PATH = path.join(__dirname, 'firestore.rules');
+const STORAGE_RULES_PATH = path.join(__dirname, 'storage.rules');
 
 /**
- * Execute a command and return the output
+ * Basic validation of security rules
+ * 
+ * @param {string} rulesPath Path to the rules file
+ * @param {string} type Type of rules (firestore or storage)
+ * @returns {boolean} Whether the rules are valid
  */
-function execute(command) {
+function validateRules(rulesPath, type) {
   try {
-    const output = execSync(command, { encoding: 'utf8' });
-    return { success: true, output };
+    const rules = fs.readFileSync(rulesPath, 'utf8');
+    
+    if (!rules || rules.trim().length === 0) {
+      console.error(`${colors.red}Error: ${type} rules file is empty${colors.reset}`);
+      return false;
+    }
+    
+    if (type === 'firestore' && !rules.includes('service cloud.firestore')) {
+      console.error(`${colors.red}Error: Firestore rules are missing required 'service cloud.firestore' declaration${colors.reset}`);
+      return false;
+    }
+    
+    if (type === 'storage' && !rules.includes('service firebase.storage')) {
+      console.error(`${colors.red}Error: Storage rules are missing required 'service firebase.storage' declaration${colors.reset}`);
+      return false;
+    }
+    
+    // Simple check for syntax errors in rules
+    if (!rules.includes('match /')) {
+      console.error(`${colors.red}Error: Rules file is missing match statements${colors.reset}`);
+      return false;
+    }
+    
+    console.log(`${colors.green}✓ ${type} rules passed basic validation${colors.reset}`);
+    return true;
   } catch (error) {
-    return { success: false, error: error.message };
-  }
-}
-
-/**
- * Check if Firebase CLI is installed
- */
-function checkFirebaseCLI() {
-  const result = execute('firebase --version');
-  if (result.success) {
-    console.log(`✅ Firebase CLI installed (${result.output.trim()})`);
-    return true;
-  } else {
-    console.log('❌ Firebase CLI not found. Please install it using:');
-    console.log('   npm install -g firebase-tools');
+    console.error(`${colors.red}Error validating ${type} rules: ${error.message}${colors.reset}`);
     return false;
   }
 }
 
 /**
- * Check if user is logged in to Firebase
+ * Deploy security rules to Firebase
  */
-function checkFirebaseLogin() {
-  const result = execute('firebase projects:list');
-  if (result.success) {
-    console.log('✅ User is logged in to Firebase');
-    return true;
-  } else {
-    console.log('❌ Not logged in to Firebase. Please login using:');
-    console.log('   firebase login');
-    return false;
-  }
-}
-
-/**
- * Get the current Firebase project
- */
-function getCurrentProject() {
-  const result = execute('firebase projects:list');
-  if (result.success) {
-    console.log('\nAvailable Firebase projects:');
-    console.log(result.output);
-    return true;
-  } else {
-    console.log('❌ Failed to list Firebase projects');
-    return false;
-  }
-}
-
-/**
- * Deploy Firestore security rules
- */
-function deployFirestoreRules(projectId) {
-  console.log('\n🔒 Deploying Firestore security rules...');
+function deployRules() {
+  console.log(`${colors.cyan}=== Deploying Security Rules ===${colors.reset}`);
   
-  // Make sure the rules file exists
-  if (!fs.existsSync('firestore.rules')) {
-    console.log('❌ firestore.rules not found');
-    return false;
+  // Validate rules before deployment
+  const firestoreRulesValid = validateRules(FIRESTORE_RULES_PATH, 'firestore');
+  const storageRulesValid = validateRules(STORAGE_RULES_PATH, 'storage');
+  
+  if (!firestoreRulesValid || !storageRulesValid) {
+    console.error(`${colors.yellow}⚠️ Rules validation failed. Aborting deployment.${colors.reset}`);
+    process.exit(1);
   }
   
-  const command = `firebase deploy --only firestore:rules ${projectId ? `--project ${projectId}` : ''}`;
-  console.log(`Executing: ${command}`);
-  
-  const result = execute(command);
-  if (result.success) {
-    console.log('✅ Firestore rules deployed successfully');
-    return true;
-  } else {
-    console.log('❌ Failed to deploy Firestore rules');
-    console.log(result.error);
-    return false;
-  }
-}
-
-/**
- * Deploy Storage security rules
- */
-function deployStorageRules(projectId) {
-  console.log('\n🔒 Deploying Storage security rules...');
-  
-  // Make sure the rules file exists
-  if (!fs.existsSync('storage.rules')) {
-    console.log('❌ storage.rules not found');
-    return false;
-  }
-  
-  const command = `firebase deploy --only storage ${projectId ? `--project ${projectId}` : ''}`;
-  console.log(`Executing: ${command}`);
-  
-  const result = execute(command);
-  if (result.success) {
-    console.log('✅ Storage rules deployed successfully');
-    return true;
-  } else {
-    console.log('❌ Failed to deploy Storage rules');
-    console.log(result.error);
-    return false;
-  }
-}
-
-/**
- * Main function
- */
-async function main() {
-  console.log('=== Firebase Security Rules Deployment ===\n');
-  
-  // Check prerequisites
-  if (!checkFirebaseCLI() || !checkFirebaseLogin()) {
-    rl.close();
-    return;
-  }
-  
-  // Get current project
-  getCurrentProject();
-  
-  // Ask for project ID
-  rl.question('\nEnter Firebase project ID (or leave empty for default project): ', (projectId) => {
-    if (projectId) {
-      console.log(`Using project: ${projectId}`);
-    } else {
-      console.log('Using default project from firebase.json');
+  try {
+    // Check if the user is logged in to Firebase
+    try {
+      const loginStatus = execSync('firebase login:list').toString();
+      if (!loginStatus.includes('✔')) {
+        console.log(`${colors.yellow}You need to log in to Firebase first${colors.reset}`);
+        execSync('firebase login', { stdio: 'inherit' });
+      }
+    } catch (error) {
+      console.log(`${colors.yellow}You need to log in to Firebase first${colors.reset}`);
+      execSync('firebase login', { stdio: 'inherit' });
     }
     
-    // Deploy rules
-    const firestoreSuccess = deployFirestoreRules(projectId);
-    const storageSuccess = deployStorageRules(projectId);
+    // Deploy Firestore rules
+    console.log(`${colors.cyan}Deploying Firestore security rules...${colors.reset}`);
+    execSync('firebase deploy --only firestore:rules', { stdio: 'inherit' });
+    console.log(`${colors.green}✓ Firestore rules deployed successfully${colors.reset}`);
     
-    console.log('\n=== Deployment Summary ===');
-    console.log(`Firestore Rules: ${firestoreSuccess ? '✅ Deployed' : '❌ Failed'}`);
-    console.log(`Storage Rules: ${storageSuccess ? '✅ Deployed' : '❌ Failed'}`);
+    // Deploy Storage rules
+    console.log(`${colors.cyan}Deploying Storage security rules...${colors.reset}`);
+    execSync('firebase deploy --only storage:rules', { stdio: 'inherit' });
+    console.log(`${colors.green}✓ Storage rules deployed successfully${colors.reset}`);
     
-    if (firestoreSuccess && storageSuccess) {
-      console.log('\n🎉 All security rules deployed successfully!');
-    } else {
-      console.log('\n⚠️ Some deployments failed. Check the logs above for details.');
-    }
-    
-    rl.close();
-  });
+    console.log(`${colors.green}=== Security rules deployment completed successfully ===${colors.reset}`);
+  } catch (error) {
+    console.error(`${colors.red}Error deploying security rules: ${error.message}${colors.reset}`);
+    process.exit(1);
+  }
 }
 
-// Run the script
-main(); 
+// Execute the deployment
+deployRules(); 

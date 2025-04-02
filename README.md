@@ -122,3 +122,92 @@ The application uses:
 ## License
 
 This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Testing & Quality Assurance
+
+### Running Tests
+The application includes automated tests to ensure quality and stability. To run the tests:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage report
+npm test -- --coverage
+```
+
+### Manual Testing Checklist
+Before deploying new features, go through this testing checklist:
+
+1. **Authentication Testing**
+   - [ ] User registration with email validation
+   - [ ] User login/logout
+   - [ ] Password reset functionality
+   - [ ] Authentication redirects working properly
+
+2. **Portfolio Management**
+   - [ ] Create and edit personal information
+   - [ ] Add/edit/delete projects
+   - [ ] Add/edit/delete skills and categories
+   - [ ] Add/edit/delete leadership experiences
+   - [ ] Update contact information
+   - [ ] Toggle portfolio publication status
+
+3. **Public Portfolio Views**
+   - [ ] Public portfolio displays correctly
+   - [ ] Portfolio directory shows published portfolios
+   - [ ] Contact form works on public portfolios
+   - [ ] Navigation between sections works
+
+4. **Security Testing**
+   - [ ] Unauthorized users cannot access protected routes
+   - [ ] Users cannot modify other users' portfolios
+   - [ ] URL validation prevents XSS attacks
+   - [ ] Input sanitization works properly
+
+5. **Responsive Design**
+   - [ ] Test on mobile devices (or using browser dev tools)
+   - [ ] Test on tablets (or using browser dev tools)
+   - [ ] Test on desktop browsers
+
+6. **Offline Functionality**
+   - [ ] Test application behavior when going offline
+   - [ ] Verify offline notification appears
+   - [ ] Check that data is preserved when reconnecting
+
+7. **Performance**
+   - [ ] Load time is reasonable
+   - [ ] Scrolling and interactions are smooth
+   - [ ] Images are properly optimized
+
+### Browser Compatibility
+Ensure the application works properly on:
+- Chrome (latest)
+- Firefox (latest)
+- Safari (latest)
+- Edge (latest)
+
+## Troubleshooting
+
+### Common Issues
+
+#### Firebase Connection Issues
+If you experience issues connecting to Firebase:
+1. Check your environment variables to ensure Firebase configuration is correct
+2. Verify your Firebase project is active and services (Authentication, Firestore, Storage) are enabled
+3. Test your network connection and ensure Firebase domains are not blocked
+
+#### TypeScript Errors
+If you encounter TypeScript errors:
+1. Run `npm install` to ensure all dependencies are properly installed
+2. Check for type definition issues and update as needed
+3. Run `npx tsc --noEmit` to verify TypeScript compilation
+
+#### Deployment Issues
+If deployment fails:
+1. Ensure you're logged in to Firebase CLI with `firebase login`
+2. Check your Firebase project permissions
+3. Verify your project has the necessary services enabled
+4. Review the firebase.json configuration
+
+For more help, refer to the [Firebase documentation](https://firebase.google.com/docs) or open an issue in the project repository.
