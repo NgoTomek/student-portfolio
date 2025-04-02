@@ -1,3 +1,4 @@
+// src/components/SkillBadge.tsx
 import React from 'react';
 
 interface SkillBadgeProps {
