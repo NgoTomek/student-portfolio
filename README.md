@@ -1,70 +1,124 @@
-# Getting Started with Create React App
+# Student Portfolio Application
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A modern, responsive web application for students to showcase their portfolios, projects, leadership experiences, and skills.
 
-## Available Scripts
+## Key Features
 
-In the project directory, you can run:
+- User authentication
+- Portfolio creation and management
+- Project showcase
+- Skills display
+- Leadership experience tracking
+- Contact information management
+- Responsive design for all devices
 
-### `npm start`
+## Security Improvements
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+This application has been secured with the following measures:
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+1. **Secure Firebase Configuration**
+   - Environment variables for sensitive credentials
+   - No hardcoded API keys or credentials
+   - Proper Firebase security rules for databases and storage
 
-### `npm test`
+2. **Data Security**
+   - User-specific data access controls
+   - Content validation before storage
+   - Protection against unauthorized access
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+3. **Frontend Security**
+   - Input validation
+   - Protection against XSS attacks
+   - Secure authentication flows
 
-### `npm run build`
+## Getting Started
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+### Prerequisites
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+- Node.js 16+ and npm
+- Firebase account with Firestore database
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+### Installation
 
-### `npm run eject`
+1. Clone the repository
+```bash
+git clone https://github.com/yourusername/student-portfolio.git
+cd student-portfolio
+```
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+2. Install dependencies
+```bash
+npm install
+```
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+3. Set up environment variables
+```bash
+cp .env.example .env
+```
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+4. Fill in your Firebase credentials in the `.env` file
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+5. Start the development server
+```bash
+npm start
+```
 
-## Learn More
+## Deployment
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+### Deploying to Firebase
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+1. Install Firebase CLI
+```bash
+npm install -g firebase-tools
+```
 
-### Code Splitting
+2. Login to Firebase
+```bash
+firebase login
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+3. Build the application
+```bash
+npm run build
+```
 
-### Analyzing the Bundle Size
+4. Deploy the application
+```bash
+npm run deploy
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+### Security Rules Deployment
 
-### Making a Progressive Web App
+The application includes custom security rules for Firestore and Storage. Deploy them separately:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+```bash
+npm run deploy:rules
+```
 
-### Advanced Configuration
+For detailed deployment instructions, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+## Security Considerations
 
-### Deployment
+For a comprehensive security plan and ongoing improvements, refer to [SECURITY-PLAN.md](./SECURITY-PLAN.md).
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+## Architecture
 
-### `npm run build` fails to minify
+The application uses:
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- React with TypeScript for frontend
+- Firebase Authentication, Firestore, and Storage
+- React Router for navigation
+- Formik and Yup for form validation
+- Zustand for state management
+- TailwindCSS for styling
+
+## Contributing
+
+1. Follow the TypeScript migration plan in [migrate-to-ts.js](./migrate-to-ts.js)
+2. Adhere to the security guidelines in [SECURITY-PLAN.md](./SECURITY-PLAN.md)
+3. Ensure all new code has proper TypeScript typings
+4. Write tests for new functionality
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.

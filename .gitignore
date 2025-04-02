@@ -13,11 +13,37 @@
 
 # misc
 .DS_Store
+.env
 .env.local
+.env.development
 .env.development.local
+.env.test
 .env.test.local
+.env.production
 .env.production.local
 
+# logs
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+logs
+*.log
+
+# firebase
+.firebase/
+firebase-debug.log*
+firestore-debug.log*
+ui-debug.log*
+
+# Migration files
+migration-analysis.json
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+.history/
+*.sublime-workspace
+
+# Security audit results
+security-audit-results.json

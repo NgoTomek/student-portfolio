@@ -1,0 +1,74 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid));
+    }
+    
+    function isValidFileType() {
+      return request.resource.contentType.matches('image/.*') || 
+        request.resource.contentType.matches('application/pdf');
+    }
+    
+    function isValidFileSize() {
+      // Limit file size to 5MB
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+    
+    // Public files - readable by anyone
+    match /public/{fileName} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // User profiles - users can only manage their own profile images
+    match /profiles/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && 
+        isValidFileType() && 
+        isValidFileSize() && 
+        fileName.matches('avatar\\.(jpg|jpeg|png)'); 
+    }
+    
+    // Portfolio files - users can manage their own, public ones are readable by anyone
+    match /portfolios/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && 
+        isValidFileType() && 
+        isValidFileSize();
+    }
+    
+    // Resume files - more restricted access
+    match /resumes/{userId}/{fileName} {
+      allow read: if isOwner(userId) || 
+        (isAuthenticated() && 
+         firestore.get(/databases/(default)/documents/users/$(userId)).data.resumeIsPublic == true);
+      allow write: if isOwner(userId) && 
+        request.resource.contentType.matches('application/pdf') && 
+        isValidFileSize();
+    }
+    
+    // Project files - users can manage their own, public ones are readable by anyone
+    match /projects/{userId}/{projectId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId) && 
+        isValidFileType() && 
+        isValidFileSize();
+    }
+    
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+} 

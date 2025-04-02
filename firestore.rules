@@ -1,0 +1,100 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+    
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isAdmin() {
+      return isAuthenticated() && 
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+    }
+    
+    function hasValidFields(requiredFields) {
+      return request.resource.data.keys().hasAll(requiredFields);
+    }
+    
+    function isValidPortfolio() {
+      return request.resource.data.userId == request.auth.uid &&
+        request.resource.data.createdAt is timestamp &&
+        (request.resource.data.updatedAt is timestamp || 
+         request.resource.data.updatedAt == null);
+    }
+    
+    // User profiles - users can only read/write their own profile
+    match /users/{userId} {
+      allow read: if isOwner(userId) || isAdmin() || 
+        (resource.data.public == true);
+      allow create: if isOwner(userId) && 
+        hasValidFields(['email', 'displayName', 'createdAt']);
+      allow update: if isOwner(userId);
+      allow delete: if isOwner(userId) || isAdmin();
+    }
+    
+    // Portfolios - users can manage their own, public ones are readable by anyone
+    match /portfolios/{portfolioId} {
+      allow read: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || 
+         resource.data.isPublished == true || 
+         isAdmin());
+      allow create: if isAuthenticated() && isValidPortfolio();
+      allow update: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+      allow delete: if isAuthenticated() && 
+        (resource.data.userId == request.auth.uid || isAdmin());
+      
+      // Portfolio sections - projects, skills, etc.
+      match /projects/{projectId} {
+        allow read: if resource.data.userId == /databases/$(database)/documents/portfolios/$(portfolioId).data.userId || 
+                    /databases/$(database)/documents/portfolios/$(portfolioId).data.isPublished == true;
+        allow write: if isOwner(/databases/$(database)/documents/portfolios/$(portfolioId).data.userId);
+      }
+      
+      match /skills/{skillId} {
+        allow read: if resource.data.userId == /databases/$(database)/documents/portfolios/$(portfolioId).data.userId || 
+                    /databases/$(database)/documents/portfolios/$(portfolioId).data.isPublished == true;
+        allow write: if isOwner(/databases/$(database)/documents/portfolios/$(portfolioId).data.userId);
+      }
+      
+      match /leadership/{leadershipId} {
+        allow read: if resource.data.userId == /databases/$(database)/documents/portfolios/$(portfolioId).data.userId || 
+                    /databases/$(database)/documents/portfolios/$(portfolioId).data.isPublished == true;
+        allow write: if isOwner(/databases/$(database)/documents/portfolios/$(portfolioId).data.userId);
+      }
+      
+      match /contact/{contactId} {
+        allow read: if resource.data.userId == /databases/$(database)/documents/portfolios/$(portfolioId).data.userId || 
+                    /databases/$(database)/documents/portfolios/$(portfolioId).data.isPublished == true;
+        allow write: if isOwner(/databases/$(database)/documents/portfolios/$(portfolioId).data.userId);
+      }
+    }
+    
+    // Public portfolio directory - anyone can read, only admin can write
+    match /portfolio-directory/{directoryId} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+    
+    // Messages - contact form submissions
+    match /messages/{messageId} {
+      allow create: if request.resource.data.keys().hasAll(['name', 'email', 'message', 'createdAt', 'recipientId']) &&
+                     request.resource.data.createdAt is timestamp;
+      allow read, update, delete: if isOwner(resource.data.recipientId) || isAdmin();
+    }
+    
+    // Admin-only collections
+    match /admins/{adminId} {
+      allow read, write: if isAdmin();
+    }
+    
+    // Default deny
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+} 

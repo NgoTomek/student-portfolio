@@ -61,3 +61,99 @@ export interface AuthState {
   loading: boolean;
   error: string | null;
 }
+
+export interface PersonalInfo {
+  displayName: string;
+  title: string;
+  bio: string;
+  location: string;
+  avatarUrl?: string;
+  coverImageUrl?: string;
+  quote?: string;
+}
+
+export interface SkillCategory {
+  name: string;
+  skills: string[];
+}
+
+export interface Project {
+  id?: string;
+  title: string;
+  description: string;
+  technologies: string[];
+  imageUrl?: string;
+  githubUrl?: string;
+  demoUrl?: string;
+  startDate: string;
+  endDate: string;
+  ongoing: boolean;
+  featured: boolean;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Leadership {
+  id?: string;
+  title: string;
+  organization: string;
+  description: string;
+  startDate: string;
+  endDate: string;
+  ongoing: boolean;
+  imageUrl?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface ContactInfo {
+  email: string;
+  phone?: string;
+  linkedIn?: string;
+  github?: string;
+  twitter?: string;
+  website?: string;
+  otherLinks?: {
+    name: string;
+    url: string;
+  }[];
+}
+
+export interface Portfolio {
+  id?: string;
+  userId: string;
+  personalInfo?: PersonalInfo;
+  skills?: SkillCategory[];
+  projects?: Project[];
+  leadership?: Leadership[];
+  contactInfo?: ContactInfo;
+  isPublished: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface FormState {
+  isSubmitting: boolean;
+  isValid: boolean;
+  isDirty: boolean;
+  errors: Record<string, string>;
+  touched: Record<string, boolean>;
+}
+
+export interface ApiResponse<T> {
+  data?: T;
+  error?: string;
+  status: 'success' | 'error' | 'loading';
+  timestamp: number;
+  fromCache?: boolean;
+}
+
+export interface ModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  title?: string;
+  footer?: React.ReactNode;
+  size?: 'sm' | 'md' | 'lg' | 'xl';
+  showCloseButton?: boolean;
+  children: React.ReactNode;
+}

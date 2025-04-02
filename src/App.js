@@ -1,10 +1,11 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider } from './contexts/AuthContext.tsx';
 import { PortfolioProvider } from './contexts/PortfolioContext';
-import { PrivateRoute, PublicRoute } from './components/ProtectedRoutes';
+import { PrivateRoute, PublicRoute } from './components/ProtectedRoutes.tsx';
 import { NetworkStatus } from './components/NetworkStatus';
-import { Toast } from './components/Toast';
+import { Toast } from './components/Toast.tsx';
+import ErrorBoundary from './components/ErrorBoundary.tsx';
 
 // Public Pages
 import Home from './pages/Home/Home';
@@ -24,56 +25,58 @@ import ContactEdit from './pages/Dashboard/ContactEdit';
 
 function App() {
   return (
-    <Router>
-      <AuthProvider>
-        <PortfolioProvider>
-          <Toast />
-          <NetworkStatus />
-          <Routes>
-            {/* Public Routes */}
-            <Route path="/" element={<Home />} />
-            <Route
-              path="/login"
-              element={
-                <PublicRoute>
-                  <Login />
-                </PublicRoute>
-              }
-            />
-            <Route
-              path="/register"
-              element={
-                <PublicRoute>
-                  <Register />
-                </PublicRoute>
-              }
-            />
-            <Route path="/portfolios" element={<PortfolioDirectory />} />
-            <Route path="/portfolio/:userId" element={<PublicPortfolio />} />
+    <ErrorBoundary>
+      <Router>
+        <AuthProvider>
+          <PortfolioProvider>
+            <Toast />
+            <NetworkStatus />
+            <Routes>
+              {/* Public Routes */}
+              <Route path="/" element={<Home />} />
+              <Route
+                path="/login"
+                element={
+                  <PublicRoute>
+                    <Login />
+                  </PublicRoute>
+                }
+              />
+              <Route
+                path="/register"
+                element={
+                  <PublicRoute>
+                    <Register />
+                  </PublicRoute>
+                }
+              />
+              <Route path="/portfolios" element={<PortfolioDirectory />} />
+              <Route path="/portfolio/:userId" element={<PublicPortfolio />} />
 
-            {/* Dashboard Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <PrivateRoute>
-                  <DashboardLayout />
-                </PrivateRoute>
-              }
-            >
-              <Route index element={<DashboardHome />} />
-              <Route path="personal-info" element={<PersonalInfoEdit />} />
-              <Route path="projects" element={<ProjectsEdit />} />
-              <Route path="leadership" element={<LeadershipEdit />} />
-              <Route path="skills" element={<SkillsEdit />} />
-              <Route path="contact" element={<ContactEdit />} />
-            </Route>
+              {/* Dashboard Routes */}
+              <Route
+                path="/dashboard"
+                element={
+                  <PrivateRoute>
+                    <DashboardLayout />
+                  </PrivateRoute>
+                }
+              >
+                <Route index element={<DashboardHome />} />
+                <Route path="personal-info" element={<PersonalInfoEdit />} />
+                <Route path="projects" element={<ProjectsEdit />} />
+                <Route path="leadership" element={<LeadershipEdit />} />
+                <Route path="skills" element={<SkillsEdit />} />
+                <Route path="contact" element={<ContactEdit />} />
+              </Route>
 
-            {/* Fallback Route */}
-            <Route path="*" element={<Navigate to="/" replace />} />
-          </Routes>
-        </PortfolioProvider>
-      </AuthProvider>
-    </Router>
+              {/* Fallback Route */}
+              <Route path="*" element={<Navigate to="/" replace />} />
+            </Routes>
+          </PortfolioProvider>
+        </AuthProvider>
+      </Router>
+    </ErrorBoundary>
   );
 }
 
