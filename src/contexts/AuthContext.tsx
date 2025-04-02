@@ -5,7 +5,6 @@ import {
   signOut,
   onAuthStateChanged,
   updateProfile,
-  User,
 } from 'firebase/auth';
 import { auth } from '../firebase';
 import { AuthState, User as UserType } from '../types';
@@ -46,6 +45,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: userCredential.user.email || '',
         displayName: userCredential.user.displayName,
         photoURL: userCredential.user.photoURL,
+        createdAt: new Date().toISOString(),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create account');
@@ -65,6 +65,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         email: userCredential.user.email || '',
         displayName: userCredential.user.displayName,
         photoURL: userCredential.user.photoURL,
+        createdAt: userCredential.user.metadata.creationTime || new Date().toISOString(),
       });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to log in');
@@ -112,6 +113,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               email: user.email || '',
               displayName: user.displayName,
               photoURL: user.photoURL,
+              createdAt: user.metadata.creationTime || new Date().toISOString(),
             }
           : null
       );

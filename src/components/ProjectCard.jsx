@@ -1,4 +1,5 @@
 import React from 'react';
+import { safeHref } from '../utils/urlUtils';
 
 const ProjectCard = ({ title, description, image, tags, link }) => {
   return (
@@ -24,7 +25,7 @@ const ProjectCard = ({ title, description, image, tags, link }) => {
         </div>
         {link && (
           <a
-            href={link}
+            href={safeHref(link)}
             className="text-blue-500 hover:text-blue-700 font-medium"
             target="_blank"
             rel="noopener noreferrer"

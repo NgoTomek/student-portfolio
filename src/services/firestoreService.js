@@ -7,7 +7,7 @@ const RETRY_DELAY = 1500;
 /**
  * Helper function to wait for a specified time
  */
-const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
 /**
  * Fetch a document with retry logic
@@ -20,7 +20,7 @@ export const fetchDocument = async (collectionPath, docId) => {
     try {
       const docRef = doc(db, collectionPath, docId);
       const docSnap = await getDoc(docRef);
-      
+
       if (docSnap.exists()) {
         return { id: docSnap.id, ...docSnap.data() };
       } else {
@@ -46,7 +46,7 @@ export const fetchDocument = async (collectionPath, docId) => {
       attempts++;
     }
   }
-  
+
   throw lastError;
 };
 
@@ -61,17 +61,17 @@ export const fetchCollection = async (collectionPath, constraints = []) => {
     try {
       const collectionRef = collection(db, collectionPath);
       let queryRef = collectionRef;
-      
+
       if (constraints.length > 0) {
         queryRef = query(collectionRef, ...constraints);
       }
-      
+
       const snapshot = await getDocs(queryRef);
       return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
     } catch (error) {
       lastError = error;
       console.warn(`Attempt ${attempts + 1} failed:`, error.message);
-      
+
       if (error.message.includes('offline')) {
         if (navigator.onLine) {
           await wait(RETRY_DELAY * 2);
@@ -84,7 +84,7 @@ export const fetchCollection = async (collectionPath, constraints = []) => {
       attempts++;
     }
   }
-  
+
   throw lastError;
 };
 
@@ -103,7 +103,7 @@ export const updateDocument = async (collectionPath, docId, data) => {
     } catch (error) {
       lastError = error;
       console.warn(`Update attempt ${attempts + 1} failed:`, error.message);
-      
+
       if (error.message.includes('offline')) {
         if (navigator.onLine) {
           await wait(RETRY_DELAY * 2);
@@ -116,6 +116,6 @@ export const updateDocument = async (collectionPath, docId, data) => {
       attempts++;
     }
   }
-  
+
   throw lastError;
-}; 
+};

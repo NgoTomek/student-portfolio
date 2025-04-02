@@ -342,7 +342,7 @@ const ProjectsEdit = () => {
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Projects</h2>
 
         {projects.length === 0 ? (
-          <p className="text-gray-500 italic">You haven't added any projects yet.</p>
+          <p className="text-gray-500 italic">You haven&apos;t added any projects yet. Click the button below to add your first project.</p>
         ) : (
           <div className="space-y-4">
             {projects.map((project, index) => (

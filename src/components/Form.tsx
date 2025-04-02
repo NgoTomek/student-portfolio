@@ -1,5 +1,12 @@
 import React, { ReactElement, cloneElement, Children, isValidElement } from 'react';
-import { Formik, Form as FormikForm, Field, ErrorMessage, FormikErrors, FormikTouched } from 'formik';
+import {
+  Formik,
+  Form as FormikForm,
+  Field,
+  ErrorMessage,
+  FormikErrors,
+  FormikTouched,
+} from 'formik';
 import * as Yup from 'yup';
 
 interface FormProps<T extends object> {
@@ -28,13 +35,16 @@ export function Form<T extends object>({
     <Formik initialValues={initialValues} validationSchema={validationSchema} onSubmit={onSubmit}>
       {({ isSubmitting, errors, touched }) => (
         <FormikForm className={`space-y-6 ${className}`}>
-          {Children.map(children, (child) => {
+          {Children.map(children, child => {
             if (isValidElement(child)) {
-              return cloneElement(child as ReactElement<any>, {
-                errors,
-                touched,
-                isSubmitting,
-              } as FormChildProps);
+              return cloneElement(
+                child as ReactElement<any>,
+                {
+                  errors,
+                  touched,
+                  isSubmitting,
+                } as FormChildProps
+              );
             }
             return child;
           })}

@@ -16,11 +16,11 @@ export const fetchAllUsers = async () => {
   try {
     // Try to get from local storage cache first
     const cachedData = getFromCache(USERS_CACHE_KEY);
-    
+
     try {
       // Attempt to fetch fresh data
       const freshData = await fetchCollection('users', [where('isPublished', '==', true)]);
-      
+
       if (freshData && freshData.length > 0) {
         // Update cache with fresh data
         saveToCache(USERS_CACHE_KEY, freshData);
@@ -30,7 +30,7 @@ export const fetchAllUsers = async () => {
         showInfoToast('Using previously cached directory. Some information may be outdated.');
         return cachedData;
       }
-      
+
       return [];
     } catch (error) {
       // If offline or error, try to return cached data
@@ -47,15 +47,15 @@ export const fetchAllUsers = async () => {
 };
 
 // Fetch a specific user's portfolio
-export const fetchUserPortfolio = async (userId) => {
+export const fetchUserPortfolio = async userId => {
   try {
     // Try to get from local storage cache first
     const cachedData = getFromCache(`${PORTFOLIO_CACHE_KEY}${userId}`);
-    
+
     try {
       // Always attempt to fetch fresh data
       const freshData = await fetchDocument('portfolios', userId);
-      
+
       if (freshData) {
         // Update cache with fresh data
         saveToCache(`${PORTFOLIO_CACHE_KEY}${userId}`, freshData);
@@ -66,7 +66,7 @@ export const fetchUserPortfolio = async (userId) => {
         showInfoToast('Using previously cached data. Some information may be outdated.');
         return { ...cachedData, _fromCache: true };
       }
-      
+
       return null; // No data found
     } catch (error) {
       // If offline or error, try to return cached data
@@ -84,15 +84,15 @@ export const fetchUserPortfolio = async (userId) => {
 };
 
 // Fetch a specific user's profile
-export const fetchUserProfile = async (userId) => {
+export const fetchUserProfile = async userId => {
   try {
     // Try to get from local storage cache first
     const cachedData = getFromCache(`${PROFILE_CACHE_KEY}${userId}`);
-    
+
     try {
       // Attempt to fetch fresh data
       const freshData = await fetchDocument('users', userId);
-      
+
       if (freshData) {
         // Update cache with fresh data
         saveToCache(`${PROFILE_CACHE_KEY}${userId}`, freshData);
@@ -102,7 +102,7 @@ export const fetchUserProfile = async (userId) => {
         showInfoToast('Using previously cached user data. Some information may be outdated.');
         return { ...cachedData, _fromCache: true };
       }
-      
+
       return null;
     } catch (error) {
       // If offline or error, try to return cached data
@@ -232,19 +232,19 @@ export const updatePortfolioSection = async (section, data) => {
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('You must be logged in');
-    
+
     await updateDocument('portfolios', user.uid, { [section]: data });
-    
+
     // Update cache
     const cachedData = getFromCache(`${PORTFOLIO_CACHE_KEY}${user.uid}`);
     if (cachedData) {
       saveToCache(`${PORTFOLIO_CACHE_KEY}${user.uid}`, {
         ...cachedData,
         [section]: data,
-        lastUpdated: new Date().toISOString()
+        lastUpdated: new Date().toISOString(),
       });
     }
-    
+
     return true;
   } catch (error) {
     handleError(error, `Failed to update ${section}`);

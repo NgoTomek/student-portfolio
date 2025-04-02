@@ -8,6 +8,7 @@
 const { execSync } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const glob = require('glob');
 
 // ANSI color codes
 const colors = {
@@ -40,12 +41,9 @@ function checkTsConfig() {
  */
 function countTsFiles() {
   try {
-    const { execSync } = require('child_process');
-    const output = execSync('find src -type f -name "*.ts" -o -name "*.tsx" | wc -l', { encoding: 'utf8' });
-    const count = parseInt(output.trim(), 10);
-    
-    console.log(`${colors.blue}Found ${count} TypeScript files in the project${colors.reset}`);
-    return count;
+    const tsFiles = glob.sync('src/**/*.{ts,tsx}');
+    console.log(`${colors.blue}Found ${tsFiles.length} TypeScript files in the project${colors.reset}`);
+    return tsFiles.length;
   } catch (error) {
     console.error(`${colors.yellow}Warning: Could not count TypeScript files${colors.reset}`);
     return 0;

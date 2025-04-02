@@ -1,16 +1,57 @@
 # Student Portfolio Application
 
-A modern, responsive web application for students to showcase their portfolios, projects, leadership experiences, and skills.
+A modern, responsive web application for students to showcase their skills, projects, and experiences.
+
+## 🚀 Quick Start
+
+To run the application locally:
+
+```bash
+# Install dependencies
+npm install
+
+# Create a .env file with your Firebase configuration
+# Use .env.example as a template
+
+# Start the development server
+npm start
+
+# Access the application at http://localhost:3000
+```
+
+To test TypeScript and security:
+
+```bash
+# Run TypeScript type checking
+npm run typecheck
+
+# Run security audit
+npm run security
+
+# Deploy security rules (requires Firebase CLI and login)
+npm run deploy:rules
+```
+
+To build and deploy:
+
+```bash
+# Create production build
+npm run build
+
+# Deploy to Firebase
+firebase deploy
+```
 
 ## Key Features
 
-- User authentication
-- Portfolio creation and management
-- Project showcase
-- Skills display
-- Leadership experience tracking
-- Contact information management
-- Responsive design for all devices
+- **User Authentication**: Secure user registration and login using Firebase Auth
+- **Portfolio Management**: Create and edit your personal portfolio
+- **Project Showcase**: Add and manage projects with images and links
+- **Leadership Experience**: Document leadership roles and accomplishments
+- **Skills Display**: Organize and showcase your skills by category
+- **Responsive Design**: Optimized for mobile, tablet, and desktop
+- **Offline Functionality**: Basic offline support with Firebase
+- **Public Portfolio**: Share your portfolio with a public URL
 
 ## Security Improvements
 

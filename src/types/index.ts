@@ -1,8 +1,14 @@
+/**
+ * Application types
+ */
+
+// User types
 export interface User {
   uid: string;
   email: string;
   displayName: string | null;
   photoURL: string | null;
+  createdAt: Date | string;
 }
 
 export interface PortfolioData {
@@ -30,30 +36,33 @@ export interface PortfolioData {
 }
 
 export interface Project {
-  id: string;
+  id?: string;
   title: string;
   description: string;
-  technologies: string[];
+  image?: string;
+  tags?: string[];
+  link?: string;
   startDate: string;
   endDate?: string;
-  link?: string;
-  imageUrl?: string;
+  featured?: boolean;
 }
 
 export interface LeadershipRole {
-  id: string;
+  id?: string;
   title: string;
   organization: string;
   description: string;
   startDate: string;
   endDate?: string;
+  image?: string;
 }
 
 export interface Skill {
-  id: string;
+  id?: string;
   name: string;
-  category: string;
-  level: 'Beginner' | 'Intermediate' | 'Advanced' | 'Expert';
+  proficiency: number; // 1-5
+  categoryId: string;
+  featured?: boolean;
 }
 
 export interface AuthState {
@@ -63,97 +72,74 @@ export interface AuthState {
 }
 
 export interface PersonalInfo {
-  displayName: string;
+  fullName: string;
   title: string;
   bio: string;
+  school: string;
   location: string;
-  avatarUrl?: string;
-  coverImageUrl?: string;
-  quote?: string;
+  graduationYear?: string;
+  major?: string;
+  minor?: string;
+  gpa?: number;
+  image?: string;
 }
 
 export interface SkillCategory {
-  name: string;
-  skills: string[];
-}
-
-export interface Project {
   id?: string;
-  title: string;
-  description: string;
-  technologies: string[];
-  imageUrl?: string;
-  githubUrl?: string;
-  demoUrl?: string;
-  startDate: string;
-  endDate: string;
-  ongoing: boolean;
-  featured: boolean;
-  createdAt?: string;
-  updatedAt?: string;
+  name: string;
+  description?: string;
+  order: number;
+  skills?: Skill[];
 }
 
 export interface Leadership {
   id?: string;
-  title: string;
-  organization: string;
-  description: string;
-  startDate: string;
-  endDate: string;
-  ongoing: boolean;
-  imageUrl?: string;
-  createdAt?: string;
-  updatedAt?: string;
+  roles: LeadershipRole[];
 }
 
 export interface ContactInfo {
   email: string;
   phone?: string;
-  linkedIn?: string;
+  linkedin?: string;
   github?: string;
-  twitter?: string;
   website?: string;
-  otherLinks?: {
-    name: string;
-    url: string;
-  }[];
+  twitter?: string;
+  instagram?: string;
+  allowMessages: boolean;
 }
 
 export interface Portfolio {
-  id?: string;
-  userId: string;
-  personalInfo?: PersonalInfo;
-  skills?: SkillCategory[];
+  uid: string;
+  personalInfo: PersonalInfo;
   projects?: Project[];
-  leadership?: Leadership[];
+  leadership?: Leadership;
+  skillCategories?: SkillCategory[];
   contactInfo?: ContactInfo;
   isPublished: boolean;
-  createdAt: string;
-  updatedAt: string;
+  createdAt: Date | string;
+  updatedAt: Date | string;
 }
 
+// Form types
 export interface FormState {
   isSubmitting: boolean;
-  isValid: boolean;
-  isDirty: boolean;
-  errors: Record<string, string>;
-  touched: Record<string, boolean>;
+  isSuccess: boolean;
+  error: string | null;
 }
 
+// API types
 export interface ApiResponse<T> {
   data?: T;
   error?: string;
   status: 'success' | 'error' | 'loading';
-  timestamp: number;
-  fromCache?: boolean;
 }
 
+// UI types
 export interface ModalProps {
   isOpen: boolean;
   onClose: () => void;
   title?: string;
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
-  showCloseButton?: boolean;
   children: React.ReactNode;
 }

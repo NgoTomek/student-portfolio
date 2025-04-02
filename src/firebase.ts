@@ -1,9 +1,8 @@
-// src/firebase.js
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence } from 'firebase/firestore';
-import { getStorage } from 'firebase/storage';
-import { getAnalytics } from 'firebase/analytics';
+import { initializeApp, FirebaseApp } from 'firebase/app';
+import { getAuth, Auth } from 'firebase/auth';
+import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
+import { getStorage, FirebaseStorage } from 'firebase/storage';
+import { getAnalytics, Analytics } from 'firebase/analytics';
 import { showErrorToast } from './components/Toast';
 
 // Check if environment variables are properly configured
@@ -34,7 +33,11 @@ const firebaseConfig = {
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
-let app, auth, db, storage, analytics;
+let app: FirebaseApp;
+let auth: Auth;
+let db: Firestore;
+let storage: FirebaseStorage;
+let analytics: Analytics;
 
 try {
   // Initialize Firebase
@@ -60,6 +63,14 @@ try {
   } else {
     showErrorToast('An error occurred initializing the application. Please try again later.');
   }
+  
+  // Initialize with empty values to prevent crashes
+  // This is a fallback to allow the app to load even if Firebase fails
+  app = {} as FirebaseApp;
+  auth = {} as Auth;
+  db = {} as Firestore;
+  storage = {} as FirebaseStorage;
+  analytics = {} as Analytics;
 }
 
-export { auth, db, storage, analytics };
+export { auth, db, storage, analytics }; 

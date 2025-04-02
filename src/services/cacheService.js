@@ -25,19 +25,19 @@ export const saveToCache = (key, data) => {
 /**
  * Get data from cache
  */
-export const getFromCache = (key) => {
+export const getFromCache = key => {
   try {
     const cacheItem = localStorage.getItem(`${CACHE_PREFIX}${key}`);
     if (!cacheItem) return null;
-    
+
     const { data, timestamp } = JSON.parse(cacheItem);
-    
+
     // Check if cache is expired
     if (Date.now() - timestamp > CACHE_EXPIRY) {
       localStorage.removeItem(`${CACHE_PREFIX}${key}`);
       return null;
     }
-    
+
     return data;
   } catch (error) {
     console.warn('Failed to get from cache:', error);
@@ -48,7 +48,7 @@ export const getFromCache = (key) => {
 /**
  * Remove item from cache
  */
-export const removeFromCache = (key) => {
+export const removeFromCache = key => {
   try {
     localStorage.removeItem(`${CACHE_PREFIX}${key}`);
     return true;
@@ -72,4 +72,4 @@ export const clearCache = () => {
     console.warn('Failed to clear cache:', error);
     return false;
   }
-}; 
+};

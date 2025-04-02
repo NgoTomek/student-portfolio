@@ -380,7 +380,7 @@ const LeadershipEdit = () => {
         <h2 className="text-2xl font-bold text-gray-800 mb-6">Your Leadership Roles</h2>
 
         {leadershipItems.length === 0 ? (
-          <p className="text-gray-500 italic">You haven't added any leadership roles yet.</p>
+          <p className="text-gray-500 italic">You haven&apos;t added any leadership roles yet. Click the button below to add your first leadership role.</p>
         ) : (
           <div className="space-y-4">
             {leadershipItems.map((item, index) => (

@@ -25,4 +25,4 @@ export function NetworkStatus() {
       You are currently offline. Some features may be unavailable until you reconnect.
     </div>
   );
-} 
+}
