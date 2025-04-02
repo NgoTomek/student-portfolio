@@ -1,22 +1,36 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
-import { doc, getDoc } from 'firebase/firestore';
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { doc, getDoc, collection, query, where, getDocs } from 'firebase/firestore';
 import { db } from '../firebase';
 import { useAuth } from './AuthContext';
+import { PortfolioData } from '../types';
+import { showErrorToast } from '../components/Toast';
 
-// Create the portfolio data context
-const PortfolioContext = createContext();
-
-// Custom hook to use the portfolio context
-export function usePortfolio() {
-  return useContext(PortfolioContext);
+interface PortfolioContextType {
+  portfolioData: PortfolioData | null;
+  loading: boolean;
+  error: string | null;
+  refreshPortfolioData: () => Promise<void>;
 }
 
-// Provider component that makes portfolio data available throughout the app
-export function PortfolioProvider({ children }) {
+const PortfolioContext = createContext<PortfolioContextType | undefined>(undefined);
+
+export function usePortfolio() {
+  const context = useContext(PortfolioContext);
+  if (context === undefined) {
+    throw new Error('usePortfolio must be used within a PortfolioProvider');
+  }
+  return context;
+}
+
+interface PortfolioProviderProps {
+  children: ReactNode;
+}
+
+export function PortfolioProvider({ children }: PortfolioProviderProps) {
   const { currentUser } = useAuth();
-  const [portfolioData, setPortfolioData] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [portfolioData, setPortfolioData] = useState<PortfolioData | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPortfolioData = async () => {
@@ -28,18 +42,21 @@ export function PortfolioProvider({ children }) {
 
       try {
         setLoading(true);
+        setError(null);
+        
         const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
         const portfolioDoc = await getDoc(portfolioDocRef);
 
         if (portfolioDoc.exists()) {
-          setPortfolioData(portfolioDoc.data());
+          setPortfolioData(portfolioDoc.data() as PortfolioData);
         } else {
           console.log('No portfolio data found for this user');
           setPortfolioData(null);
         }
       } catch (err) {
         console.error('Error fetching portfolio data:', err);
-        setError(err.message);
+        setError(err instanceof Error ? err.message : 'An error occurred while fetching portfolio data');
+        showErrorToast(`Failed to load portfolio data: ${err instanceof Error ? err.message : 'Unknown error'}`);
       } finally {
         setLoading(false);
       }
@@ -54,17 +71,41 @@ export function PortfolioProvider({ children }) {
 
     try {
       setLoading(true);
+      setError(null);
+      
       const portfolioDocRef = doc(db, 'portfolios', currentUser.uid);
       const portfolioDoc = await getDoc(portfolioDocRef);
 
       if (portfolioDoc.exists()) {
-        setPortfolioData(portfolioDoc.data());
+        setPortfolioData(portfolioDoc.data() as PortfolioData);
       } else {
         setPortfolioData(null);
       }
     } catch (err) {
       console.error('Error refreshing portfolio data:', err);
-      setError(err.message);
+      setError(err instanceof Error ? err.message : 'An error occurred while refreshing portfolio data');
+      showErrorToast(`Failed to refresh portfolio data: ${err instanceof Error ? err.message : 'Unknown error'}`);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Get public portfolios
+  const getPublicPortfolios = async () => {
+    try {
+      setLoading(true);
+      
+      const portfoliosRef = collection(db, 'portfolios');
+      const q = query(portfoliosRef, where('isPublished', '==', true));
+      const querySnapshot = await getDocs(q);
+      
+      return querySnapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data()
+      }));
+    } catch (err) {
+      console.error('Error fetching public portfolios:', err);
+      throw err;
     } finally {
       setLoading(false);
     }
@@ -77,5 +118,9 @@ export function PortfolioProvider({ children }) {
     refreshPortfolioData,
   };
 
-  return <PortfolioContext.Provider value={value}>{children}</PortfolioContext.Provider>;
+  return (
+    <PortfolioContext.Provider value={value}>
+      {children}
+    </PortfolioContext.Provider>
+  );
 }
