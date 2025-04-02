@@ -1,10 +1,12 @@
+// src/services/portfolioService.ts
 import { collection, getDocs, query, where, doc, getDoc } from 'firebase/firestore';
 import { db } from '../firebase';
 import { fetchDocument, fetchCollection, updateDocument } from './firestoreService';
 import { showErrorToast, showInfoToast } from '../components/Toast';
 import { auth } from '../firebase';
 import { saveToCache, getFromCache } from './cacheService';
-import { handleError } from '../utils/errorHandler';
+import { handleError } from '../utils/errorUtils';
+import { PortfolioData, Project, LeadershipRole, Skill } from '../types';
 
 // Cache keys
 const PORTFOLIO_CACHE_KEY = 'portfolio_';
@@ -42,19 +44,19 @@ export const fetchAllUsers = async () => {
     }
   } catch (error) {
     handleError(error, 'Failed to load users directory');
-    throw new Error(`Failed to load users: ${error.message}`);
+    throw new Error(`Failed to load users: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
 // Fetch a specific user's portfolio
-export const fetchUserPortfolio = async userId => {
+export const fetchUserPortfolio = async (userId: string): Promise<PortfolioData | null> => {
   try {
     // Try to get from local storage cache first
-    const cachedData = getFromCache(`${PORTFOLIO_CACHE_KEY}${userId}`);
+    const cachedData = getFromCache<PortfolioData>(`${PORTFOLIO_CACHE_KEY}${userId}`);
 
     try {
       // Always attempt to fetch fresh data
-      const freshData = await fetchDocument('portfolios', userId);
+      const freshData = await fetchDocument('portfolios', userId) as PortfolioData | null;
 
       if (freshData) {
         // Update cache with fresh data
@@ -71,7 +73,7 @@ export const fetchUserPortfolio = async userId => {
     } catch (error) {
       // If offline or error, try to return cached data
       if (cachedData) {
-        console.warn('Using cached portfolio data due to error:', error.message);
+        console.warn('Using cached portfolio data due to error:', error);
         showInfoToast('You appear to be offline. Using cached data.');
         return { ...cachedData, _fromCache: true };
       }
@@ -79,12 +81,12 @@ export const fetchUserPortfolio = async userId => {
     }
   } catch (error) {
     handleError(error, 'Failed to load portfolio data');
-    throw new Error(`Failed to load portfolio data: ${error.message}`);
+    throw new Error(`Failed to load portfolio data: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
 // Fetch a specific user's profile
-export const fetchUserProfile = async userId => {
+export const fetchUserProfile = async (userId: string) => {
   try {
     // Try to get from local storage cache first
     const cachedData = getFromCache(`${PROFILE_CACHE_KEY}${userId}`);
@@ -114,12 +116,12 @@ export const fetchUserProfile = async userId => {
     }
   } catch (error) {
     handleError(error, 'Failed to load user profile');
-    throw new Error(`Failed to load user profile: ${error.message}`);
+    throw new Error(`Failed to load user profile: ${error instanceof Error ? error.message : 'Unknown error'}`);
   }
 };
 
 // Fetch portfolios by school
-export const fetchPortfoliosBySchool = async schoolName => {
+export const fetchPortfoliosBySchool = async (schoolName: string) => {
   try {
     // First get users from that school
     const usersCollection = collection(db, 'users');
@@ -145,7 +147,7 @@ export const fetchPortfoliosBySchool = async schoolName => {
 };
 
 // Search portfolios by keyword
-export const searchPortfolios = async keyword => {
+export const searchPortfolios = async (keyword: string) => {
   try {
     // This is a simplified search implementation
     // In a real app, you might use Firestore's array-contains or Firebase Extensions like Search
@@ -176,7 +178,7 @@ export const searchPortfolios = async keyword => {
       if (
         data.projects &&
         data.projects.some(
-          project =>
+          (project: Project) =>
             project.title?.toLowerCase().includes(lowerKeyword) ||
             project.description?.toLowerCase().includes(lowerKeyword)
         )
@@ -192,7 +194,7 @@ export const searchPortfolios = async keyword => {
       if (
         data.leadership &&
         data.leadership.some(
-          item =>
+          (item: LeadershipRole) =>
             item.title?.toLowerCase().includes(lowerKeyword) ||
             item.organization?.toLowerCase().includes(lowerKeyword) ||
             item.description?.toLowerCase().includes(lowerKeyword)
@@ -208,7 +210,7 @@ export const searchPortfolios = async keyword => {
       // Check skills
       if (
         data.skills &&
-        data.skills.some(skill => skill.name?.toLowerCase().includes(lowerKeyword))
+        data.skills.some((skill: Skill) => skill.name?.toLowerCase().includes(lowerKeyword))
       ) {
         results.push({
           id: doc.id,
@@ -228,7 +230,7 @@ export const searchPortfolios = async keyword => {
 /**
  * Update a specific section of the current user's portfolio
  */
-export const updatePortfolioSection = async (section, data) => {
+export const updatePortfolioSection = async (section: string, data: any) => {
   try {
     const user = auth.currentUser;
     if (!user) throw new Error('You must be logged in');
@@ -236,7 +238,7 @@ export const updatePortfolioSection = async (section, data) => {
     await updateDocument('portfolios', user.uid, { [section]: data });
 
     // Update cache
-    const cachedData = getFromCache(`${PORTFOLIO_CACHE_KEY}${user.uid}`);
+    const cachedData = getFromCache<PortfolioData>(`${PORTFOLIO_CACHE_KEY}${user.uid}`);
     if (cachedData) {
       saveToCache(`${PORTFOLIO_CACHE_KEY}${user.uid}`, {
         ...cachedData,
