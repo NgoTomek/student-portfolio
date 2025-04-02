@@ -1,11 +1,18 @@
 import { initializeApp, FirebaseApp } from 'firebase/app';
-import { getAuth, Auth } from 'firebase/auth';
-import { getFirestore, enableIndexedDbPersistence, Firestore } from 'firebase/firestore';
-import { getStorage, FirebaseStorage } from 'firebase/storage';
-import { getAnalytics, Analytics } from 'firebase/analytics';
-import { showErrorToast } from './components/Toast';
+import { getAuth, Auth, connectAuthEmulator } from 'firebase/auth';
+import { 
+  getFirestore, 
+  Firestore, 
+  enableIndexedDbPersistence,
+  connectFirestoreEmulator
+} from 'firebase/firestore';
+import { getStorage, FirebaseStorage, connectStorageEmulator } from 'firebase/storage';
+import { getAnalytics, Analytics, isSupported } from 'firebase/analytics';
+import { handleError } from './utils/errorUtils';
 
-// Check if environment variables are properly configured
+/**
+ * Environment validation to ensure all required variables are defined
+ */
 const requiredEnvVars = [
   'REACT_APP_FIREBASE_API_KEY',
   'REACT_APP_FIREBASE_AUTH_DOMAIN',
@@ -17,12 +24,18 @@ const requiredEnvVars = [
 
 const missingEnvVars = requiredEnvVars.filter(varName => !process.env[varName]);
 
-if (missingEnvVars.length > 0 && process.env.NODE_ENV === 'development') {
-  console.error('Missing required environment variables:', missingEnvVars.join(', '));
-  console.error('Please check your .env file or environment configuration.');
+if (missingEnvVars.length > 0) {
+  const errorMessage = `Missing required environment variables: ${missingEnvVars.join(', ')}`;
+  console.error(errorMessage);
+  
+  if (process.env.NODE_ENV !== 'development') {
+    throw new Error(errorMessage);
+  }
 }
 
-// Your web app's Firebase configuration
+/**
+ * Firebase configuration with environment variables
+ */
 const firebaseConfig = {
   apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
   authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -33,44 +46,78 @@ const firebaseConfig = {
   measurementId: process.env.REACT_APP_FIREBASE_MEASUREMENT_ID,
 };
 
+/**
+ * Firebase app and service initialization
+ */
 let app: FirebaseApp;
 let auth: Auth;
 let db: Firestore;
 let storage: FirebaseStorage;
-let analytics: Analytics;
+let analytics: Analytics | null = null;
 
 try {
-  // Initialize Firebase
+  // Initialize the Firebase app
   app = initializeApp(firebaseConfig);
+  
+  // Initialize Firebase services
   auth = getAuth(app);
   db = getFirestore(app);
   storage = getStorage(app);
-  analytics = getAnalytics(app);
+  
+  // Only initialize analytics in production and if supported
+  if (process.env.NODE_ENV === 'production') {
+    isSupported().then(supported => {
+      if (supported) {
+        analytics = getAnalytics(app);
+      }
+    }).catch(error => {
+      console.warn('Analytics not supported:', error);
+    });
+  }
 
-  // Enable offline persistence
+  // Set up emulators for local development
+  if (process.env.NODE_ENV === 'development' && process.env.REACT_APP_USE_EMULATORS === 'true') {
+    // Auth emulator
+    connectAuthEmulator(auth, 'http://localhost:9099');
+    // Firestore emulator
+    connectFirestoreEmulator(db, 'localhost', 8080);
+    // Storage emulator
+    connectStorageEmulator(storage, 'localhost', 9199);
+    
+    console.log('Connected to Firebase emulators');
+  }
+
+  // Enable offline persistence for Firestore
   enableIndexedDbPersistence(db).catch(err => {
     if (err.code === 'failed-precondition') {
-      console.warn('Multiple tabs open, persistence can only be enabled in one tab at a time.');
+      console.warn(
+        'Multiple tabs open, persistence can only be enabled in one tab at a time.'
+      );
     } else if (err.code === 'unimplemented') {
-      console.warn('The current browser does not support offline persistence.');
+      console.warn(
+        'The current browser does not support all of the features required to enable persistence.'
+      );
+    } else {
+      console.error('Persistence error:', err);
     }
   });
+
 } catch (error) {
   console.error('Firebase initialization error:', error);
-
-  if (process.env.NODE_ENV === 'development') {
-    showErrorToast('Firebase initialization failed. Check console for details.');
-  } else {
-    showErrorToast('An error occurred initializing the application. Please try again later.');
-  }
+  handleError(error, 'Firebase initialization failed');
   
-  // Initialize with empty values to prevent crashes
-  // This is a fallback to allow the app to load even if Firebase fails
+  // Initialize with empty objects to prevent crashes
+  // This will keep the app from crashing if Firebase fails to initialize
   app = {} as FirebaseApp;
   auth = {} as Auth;
   db = {} as Firestore;
   storage = {} as FirebaseStorage;
-  analytics = {} as Analytics;
 }
 
-export { auth, db, storage, analytics }; 
+// Export the Firebase services
+export { app, auth, db, storage, analytics };
+
+// Export a function to check if Firebase is properly initialized
+export const isFirebaseInitialized = (): boolean => {
+  return !!app && !!auth && !!db && !!storage;
+};
