@@ -1,6 +1,5 @@
+// src/components/ContactForm.tsx
 import React, { useState } from 'react';
-import { Form, FormField, FormSubmitButton } from './Form';
-import * as Yup from 'yup';
 import { handleError } from '../utils/errorUtils';
 import { showSuccessToast } from './Toast';
 
@@ -9,42 +8,44 @@ interface ContactFormProps {
   onSubmitSuccess?: () => void;
 }
 
-interface ContactFormValues {
-  name: string;
-  email: string;
-  message: string;
-}
-
-const contactSchema = Yup.object().shape({
-  name: Yup.string().required('Name is required'),
-  email: Yup.string().email('Please enter a valid email').required('Email is required'),
-  message: Yup.string().required('Message is required').min(10, 'Message is too short'),
-});
-
 const ContactForm: React.FC<ContactFormProps> = ({ recipientId, onSubmitSuccess }) => {
-  const [error, setError] = useState<string>('');
-
-  const initialValues: ContactFormValues = {
+  const [formData, setFormData] = useState({
     name: '',
     email: '',
     message: '',
+  });
+  
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({
+      ...prev,
+      [name]: value,
+    }));
   };
 
-  const handleSubmit = async (values: ContactFormValues, { resetForm, setSubmitting }: { resetForm: () => void, setSubmitting: (isSubmitting: boolean) => void }) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    
     try {
-      setError('');
-      
-      // In a real implementation, this would send a message to Firestore
-      console.log('Sending message to:', recipientId, values);
-      
-      // Simulate API call
+      setIsSubmitting(true);
+      setError(null);
+
+      // Here you would typically send the form data to your backend
+      // For now, let's simulate a successful submission
       await new Promise(resolve => setTimeout(resolve, 1000));
       
       // Show success message
       showSuccessToast('Message sent successfully!');
       
       // Reset form
-      resetForm();
+      setFormData({
+        name: '',
+        email: '',
+        message: '',
+      });
       
       // Call success callback if provided
       if (onSubmitSuccess) {
@@ -54,60 +55,79 @@ const ContactForm: React.FC<ContactFormProps> = ({ recipientId, onSubmitSuccess 
       handleError(err, 'Failed to send message');
       setError(err instanceof Error ? err.message : 'An error occurred while sending your message');
     } finally {
-      setSubmitting(false);
+      setIsSubmitting(false);
     }
   };
 
   return (
-    <Form
-      initialValues={initialValues}
-      validationSchema={contactSchema}
-      onSubmit={handleSubmit}
-    >
-      {({ errors, touched, isSubmitting }) => (
-        <>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative mb-4">
-              <span className="block sm:inline">{error}</span>
-            </div>
-          )}
-          
-          <FormField
-            name="name"
-            label="Name"
-            placeholder="Your name"
-            errors={errors}
-            touched={touched}
-            isSubmitting={isSubmitting}
-          />
-          
-          <FormField
-            name="email"
-            label="Email"
-            type="email"
-            placeholder="your.email@example.com"
-            errors={errors}
-            touched={touched}
-            isSubmitting={isSubmitting}
-          />
-          
-          <FormField
-            name="message"
-            label="Message"
-            as="textarea"
-            placeholder="Your message here..."
-            rows={4}
-            errors={errors}
-            touched={touched}
-            isSubmitting={isSubmitting}
-          />
-          
-          <FormSubmitButton isSubmitting={isSubmitting} className="w-full">
-            Send Message
-          </FormSubmitButton>
-        </>
+    <form className="space-y-6" onSubmit={handleSubmit}>
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded relative">
+          <span className="block sm:inline">{error}</span>
+        </div>
       )}
-    </Form>
+    
+      <div>
+        <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          Name
+        </label>
+        <input
+          type="text"
+          id="name"
+          name="name"
+          value={formData.name}
+          onChange={handleChange}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Your name"
+          required
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+          Email
+        </label>
+        <input
+          type="email"
+          id="email"
+          name="email"
+          value={formData.email}
+          onChange={handleChange}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="your.email@example.com"
+          required
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <div>
+        <label htmlFor="message" className="block text-sm font-medium text-gray-700">
+          Message
+        </label>
+        <textarea
+          id="message"
+          name="message"
+          rows={4}
+          value={formData.message}
+          onChange={handleChange}
+          className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
+          placeholder="Your message here..."
+          required
+          disabled={isSubmitting}
+        />
+      </div>
+
+      <div>
+        <button
+          type="submit"
+          disabled={isSubmitting}
+          className="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+        >
+          {isSubmitting ? 'Sending...' : 'Send Message'}
+        </button>
+      </div>
+    </form>
   );
 };
 
